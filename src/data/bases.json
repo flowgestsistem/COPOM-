@@ -1,0 +1,344 @@
+[
+  {
+    "id": "node/955208575",
+    "unitType": "ambulancia",
+    "name": "UAI Roosevelt",
+    "location": [
+      -18.8911026,
+      -48.2857099
+    ]
+  },
+  {
+    "id": "node/3082343023",
+    "unitType": "ambulancia",
+    "name": "UAI Luizote",
+    "location": [
+      -18.9205507,
+      -48.3301704
+    ]
+  },
+  {
+    "id": "node/4067225745",
+    "unitType": "ambulancia",
+    "name": "UAI Martins",
+    "location": [
+      -18.9139594,
+      -48.2876183
+    ]
+  },
+  {
+    "id": "node/5918894883",
+    "unitType": "ambulancia",
+    "name": "Posto de Saúde",
+    "location": [
+      -18.8899237,
+      -48.3325831
+    ]
+  },
+  {
+    "id": "node/6563333232",
+    "unitType": "ambulancia",
+    "name": "CIAS Unimed Uberlândia",
+    "location": [
+      -18.9222856,
+      -48.2819295
+    ]
+  },
+  {
+    "id": "node/9392142776",
+    "unitType": "ambulancia",
+    "name": "Labs For Fit",
+    "location": [
+      -18.9525258,
+      -48.2699989
+    ]
+  },
+  {
+    "id": "node/9579555607",
+    "unitType": "viatura",
+    "name": "Polícia Federal do Brasil",
+    "location": [
+      -18.9322162,
+      -48.2372856
+    ]
+  },
+  {
+    "id": "node/12525035383",
+    "unitType": "ambulancia",
+    "name": "Consultório Dr. Arthur Lacerda (Pediatra)",
+    "location": [
+      -18.9168218,
+      -48.2851566
+    ]
+  },
+  {
+    "id": "node/13513400439",
+    "unitType": "viatura",
+    "name": "Base de Segurança Comunitária - Polícia Militar",
+    "location": [
+      -18.920323,
+      -48.277668
+    ]
+  },
+  {
+    "id": "way/154568294",
+    "unitType": "ambulancia",
+    "name": "UAI Tibery Anice Dib Jatene",
+    "location": [
+      -18.9061119,
+      -48.2465241
+    ]
+  },
+  {
+    "id": "way/190982415",
+    "unitType": "ambulancia",
+    "name": "Centro Oncológico do Triângulo",
+    "location": [
+      -18.9116976,
+      -48.2432755
+    ]
+  },
+  {
+    "id": "way/283587396",
+    "unitType": "ambulancia",
+    "name": "Hospital e Maternidade Municipal Dr. Odelmo Leão Carneiro",
+    "location": [
+      -18.9507567,
+      -48.2478233
+    ]
+  },
+  {
+    "id": "way/286436806",
+    "unitType": "ambulancia",
+    "name": "UAI ROOSEVELT",
+    "location": [
+      -18.8913863,
+      -48.2857919
+    ]
+  },
+  {
+    "id": "way/300943916",
+    "unitType": "ambulancia",
+    "name": "Madrecor",
+    "location": [
+      -18.9277601,
+      -48.2383643
+    ]
+  },
+  {
+    "id": "way/300946872",
+    "unitType": "viatura",
+    "name": "Quartel Polícia Militar (17 BPM)",
+    "location": [
+      -18.910811,
+      -48.2448644
+    ]
+  },
+  {
+    "id": "way/303786548",
+    "unitType": "ambulancia",
+    "name": "Hospital Santa Genoveva",
+    "location": [
+      -18.9140851,
+      -48.2856073
+    ]
+  },
+  {
+    "id": "way/303801059",
+    "unitType": "viatura",
+    "name": "Polícia Civil",
+    "location": [
+      -18.9099275,
+      -48.3266929
+    ]
+  },
+  {
+    "id": "way/303801371",
+    "unitType": "viatura",
+    "name": "9º RISP Polícia militar / civil",
+    "location": [
+      -18.911472,
+      -48.3257641
+    ]
+  },
+  {
+    "id": "way/305161140",
+    "unitType": "bombeiro",
+    "name": "Corpo de Bombeiros",
+    "location": [
+      -18.8998136,
+      -48.2592123
+    ]
+  },
+  {
+    "id": "way/305161746",
+    "unitType": "ambulancia",
+    "name": "Hospital de Clínicas da Universidade Federal de Uberlândia",
+    "location": [
+      -18.8820964,
+      -48.2595444
+    ]
+  },
+  {
+    "id": "way/305168224",
+    "unitType": "ambulancia",
+    "name": "Ambulatório Herbert de Freitas",
+    "location": [
+      -18.896189,
+      -48.2836233
+    ]
+  },
+  {
+    "id": "way/305171841",
+    "unitType": "ambulancia",
+    "name": "Hospital do Triângulo",
+    "location": [
+      -18.9125861,
+      -48.2750721
+    ]
+  },
+  {
+    "id": "way/312797555",
+    "unitType": "ambulancia",
+    "name": "UAI PLANALTO",
+    "location": [
+      -18.9381477,
+      -48.3087275
+    ]
+  },
+  {
+    "id": "way/312800946",
+    "unitType": "ambulancia",
+    "name": "Nefroclínica",
+    "location": [
+      -18.888059,
+      -48.2587788
+    ]
+  },
+  {
+    "id": "way/479444520",
+    "unitType": "ambulancia",
+    "name": "Novo Pronto Socorro UFU",
+    "location": [
+      -18.8814989,
+      -48.2607044
+    ]
+  },
+  {
+    "id": "way/486861976",
+    "unitType": "ambulancia",
+    "name": "UAPS Nossa Senhora das Graças",
+    "location": [
+      -18.8703753,
+      -48.2798667
+    ]
+  },
+  {
+    "id": "way/615924514",
+    "unitType": "viatura",
+    "name": "Delegacia de Polícia Civil — Norte",
+    "location": [
+      -18.8742599,
+      -48.2634487
+    ]
+  },
+  {
+    "id": "way/1075696071",
+    "unitType": "ambulancia",
+    "name": "Hospital e Maternidade Santa Clara",
+    "location": [
+      -18.9200297,
+      -48.2811656
+    ]
+  },
+  {
+    "id": "way/1078711334",
+    "unitType": "ambulancia",
+    "name": "Hospital Orthomed Center",
+    "location": [
+      -18.9306793,
+      -48.2869666
+    ]
+  },
+  {
+    "id": "way/1198665227",
+    "unitType": "ambulancia",
+    "name": "UAI São Jorge",
+    "location": [
+      -18.9594205,
+      -48.235679
+    ]
+  },
+  {
+    "id": "way/1444620480",
+    "unitType": "viatura",
+    "name": "16ª Delegacia Regional de Polícia Civil de Uberlândia",
+    "location": [
+      -18.8867574,
+      -48.2588748
+    ]
+  },
+  {
+    "id": "way/1444620481",
+    "unitType": "viatura",
+    "name": "16° DRPC- Perícia",
+    "location": [
+      -18.8870138,
+      -48.2582499
+    ]
+  },
+  {
+    "id": "way/1454925873",
+    "unitType": "ambulancia",
+    "name": "UAI Pampulha Irmã Dulce",
+    "location": [
+      -18.9295332,
+      -48.2444579
+    ]
+  },
+  {
+    "id": "way/1456780486",
+    "unitType": "viatura",
+    "name": "Delegacia de Polícia Civil — Centro",
+    "location": [
+      -18.9105309,
+      -48.2765514
+    ]
+  },
+  {
+    "id": "way/1463844664",
+    "unitType": "bombeiro",
+    "name": "Pelotão Norte/Industrial - 5ºPel/1ªCia/5ºBBM - Corpo de Bombeiros Militar de Minas Gerais",
+    "location": [
+      -18.8664212,
+      -48.2917739
+    ]
+  },
+  {
+    "id": "way/1466209551",
+    "unitType": "ambulancia",
+    "name": "UMC",
+    "location": [
+      -18.9477812,
+      -48.2698793
+    ]
+  },
+  {
+    "id": "way/1493499766",
+    "unitType": "ambulancia",
+    "name": "Hospital Santa Marta",
+    "location": [
+      -18.9318593,
+      -48.2859301
+    ]
+  },
+  {
+    "id": "way/1499153903",
+    "unitType": "viatura",
+    "name": "Delegacia Central da Polícia Civil",
+    "location": [
+      -18.93015,
+      -48.30005
+    ]
+  }
+]
