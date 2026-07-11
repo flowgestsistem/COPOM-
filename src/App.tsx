@@ -1334,16 +1334,22 @@ function App() {
             <span className="app-header__title-full">COPOM/COBOM — Uberlândia</span>
             <span className="app-header__title-short">COPOM</span>
           </h1>
-          <span className="app-header__status">
-            <span className="app-header__status-full">
-              {units.length} unidades · {incidents.length} ocorrências · {score} pts
-              {started && paused ? ' · pausado' : started ? ' · em plantão' : ''}
-            </span>
-            <span className="app-header__status-short">
-              {incidents.length} occ · {score} pts
-              {started && paused ? ' · pausa' : started ? ' · plantão' : ''}
-            </span>
+          <span className="app-header__status app-header__status-full">
+            {units.length} unidades · {incidents.length} ocorrências · {score} pts
+            {started && paused ? ' · pausado' : started ? ' · em plantão' : ''}
           </span>
+        </div>
+        <div className="app-header__chips" aria-label="Resumo do plantão">
+          <span className="app-header__chip">
+            <em>{units.length}</em> un.
+          </span>
+          <span className={`app-header__chip${waitingIncidents > 0 ? ' app-header__chip--alert' : ''}`}>
+            <em>{incidents.length}</em> occ
+          </span>
+          <span className="app-header__chip app-header__chip--score">
+            <em>{score}</em> pts
+          </span>
+          {started && paused && <span className="app-header__chip app-header__chip--pause">pausa</span>}
         </div>
         {started && (
           <div className="app-header__actions">
@@ -1353,23 +1359,35 @@ function App() {
             </button>
             <button type="button" className="app-header__btn app-header__btn--danger" onClick={endShift}>
               <span className="app-header__btn-full">Encerrar plantão</span>
-              <span className="app-header__btn-short">Encerrar</span>
+              <span className="app-header__btn-short">Sair</span>
             </button>
           </div>
         )}
       </header>
       <div className="app-body">
+        {/* Backdrop: toque fora fecha o painel no mobile */}
+        {mobileView !== 'mapa' && (
+          <button
+            type="button"
+            className="app-mobile-backdrop"
+            aria-label="Fechar painel e voltar ao mapa"
+            onClick={openMapView}
+          />
+        )}
         <div className="app-left" id="app-left-panel">
           <div className="app-panel-mobile-bar">
-            <span className="app-panel-mobile-bar__title">Central</span>
-            <button
-              type="button"
-              className="app-panel-mobile-bar__close"
-              onClick={openMapView}
-              aria-label="Voltar ao mapa"
-            >
-              Mapa
-            </button>
+            <span className="app-panel-mobile-bar__handle" aria-hidden />
+            <div className="app-panel-mobile-bar__row">
+              <span className="app-panel-mobile-bar__title">Central 190 / 193</span>
+              <button
+                type="button"
+                className="app-panel-mobile-bar__close"
+                onClick={openMapView}
+                aria-label="Voltar ao mapa"
+              >
+                Fechar
+              </button>
+            </div>
           </div>
           <div className="app-left__tabs" role="tablist" aria-label="Painel esquerdo">
             <button
@@ -1625,15 +1643,18 @@ function App() {
         </main>
         <aside className="app-ops" id="app-ops-panel" aria-label="Operações">
           <div className="app-panel-mobile-bar">
-            <span className="app-panel-mobile-bar__title">Operações</span>
-            <button
-              type="button"
-              className="app-panel-mobile-bar__close"
-              onClick={openMapView}
-              aria-label="Voltar ao mapa"
-            >
-              Mapa
-            </button>
+            <span className="app-panel-mobile-bar__handle" aria-hidden />
+            <div className="app-panel-mobile-bar__row">
+              <span className="app-panel-mobile-bar__title">Operações</span>
+              <button
+                type="button"
+                className="app-panel-mobile-bar__close"
+                onClick={openMapView}
+                aria-label="Voltar ao mapa"
+              >
+                Fechar
+              </button>
+            </div>
           </div>
           <OperationsPanel
             units={units}
@@ -1663,11 +1684,15 @@ function App() {
         <button
           type="button"
           className={`app-mobile-nav__btn${mobileView === 'ocorrencias' ? ' is-active' : ''}`}
-          onClick={() => setMobileView('ocorrencias')}
+          onClick={() =>
+            setMobileView((v) => (v === 'ocorrencias' ? 'mapa' : 'ocorrencias'))
+          }
           aria-current={mobileView === 'ocorrencias' ? 'page' : undefined}
         >
           <span className="app-mobile-nav__icon" aria-hidden>
-            📋
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" strokeLinecap="round" />
+            </svg>
           </span>
           <span className="app-mobile-nav__label">Central</span>
           {waitingIncidents + activeCivilCases > 0 && (
@@ -1676,23 +1701,28 @@ function App() {
         </button>
         <button
           type="button"
-          className={`app-mobile-nav__btn${mobileView === 'mapa' ? ' is-active' : ''}`}
+          className={`app-mobile-nav__btn app-mobile-nav__btn--map${mobileView === 'mapa' ? ' is-active' : ''}`}
           onClick={() => setMobileView('mapa')}
           aria-current={mobileView === 'mapa' ? 'page' : undefined}
         >
           <span className="app-mobile-nav__icon" aria-hidden>
-            🗺️
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M9 4l-5 2v14l5-2 6 2 5-2V4l-5 2-6-2z" strokeLinejoin="round" />
+              <path d="M9 4v14M15 6v14" strokeLinecap="round" />
+            </svg>
           </span>
           <span className="app-mobile-nav__label">Mapa</span>
         </button>
         <button
           type="button"
           className={`app-mobile-nav__btn${mobileView === 'operacoes' ? ' is-active' : ''}`}
-          onClick={() => setMobileView('operacoes')}
+          onClick={() => setMobileView((v) => (v === 'operacoes' ? 'mapa' : 'operacoes'))}
           aria-current={mobileView === 'operacoes' ? 'page' : undefined}
         >
           <span className="app-mobile-nav__icon" aria-hidden>
-            ⚡
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z" strokeLinejoin="round" />
+            </svg>
           </span>
           <span className="app-mobile-nav__label">Ops</span>
           {activeOps > 0 && <em className="app-mobile-nav__badge">{activeOps}</em>}

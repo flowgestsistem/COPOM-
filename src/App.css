@@ -55,11 +55,15 @@
   min-width: 0;
 }
 
-.app-header__status-short {
+.app-header__chips {
   display: none;
 }
 
 .app-header__btn-short {
+  display: none;
+}
+
+.app-mobile-backdrop {
   display: none;
 }
 
@@ -4861,33 +4865,28 @@
 
 /* ═══════════════════════════════════════════════════════════
    RESPONSIVO — tablet / celular
+   ≤1200px: layout mobile (mapa + bottom nav)
+   Desktop largo mantém 3 colunas
    ═══════════════════════════════════════════════════════════ */
 
-@media (max-width: 1100px) {
-  .app-left {
-    flex-basis: 300px;
-  }
-
-  .app-ops {
-    flex-basis: 300px;
-  }
-}
-
-@media (max-width: 900px) {
+@media (max-width: 1200px) {
   .app-shell {
-    /* espaço da bottom nav + safe area */
     padding-bottom: 0;
   }
 
+  /* ── Header compacto ── */
   .app-header {
     padding: 8px 10px;
     padding-top: max(8px, env(safe-area-inset-top, 0px));
     gap: 8px;
     flex-wrap: nowrap;
+    align-items: center;
   }
 
   .app-header h1 {
-    font-size: 15px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
   }
 
   .app-header__title-full {
@@ -4898,22 +4897,76 @@
     display: inline;
   }
 
-  .app-header__status {
-    font-size: 11px;
-  }
-
   .app-header__status-full {
     display: none;
   }
 
-  .app-header__status-short {
-    display: inline;
+  .app-header__chips {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 5px;
+    align-items: center;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .app-header__chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .app-header__chip {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #1a1c24;
+    border: 1px solid #2a2d38;
+    font-size: 11px;
+    font-weight: 600;
+    color: #8b90a0;
+    white-space: nowrap;
+  }
+
+  .app-header__chip em {
+    font-style: normal;
+    font-weight: 750;
+    color: #eef0f4;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .app-header__chip--alert {
+    border-color: rgba(245, 158, 11, 0.45);
+    background: rgba(245, 158, 11, 0.12);
+    color: #fbbf24;
+  }
+
+  .app-header__chip--alert em {
+    color: #fde68a;
+  }
+
+  .app-header__chip--score {
+    border-color: rgba(59, 130, 246, 0.35);
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  .app-header__chip--score em {
+    color: #93c5fd;
+  }
+
+  .app-header__chip--pause {
+    border-color: rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.12);
+    color: #fca5a5;
   }
 
   .app-header__btn {
-    padding: 6px 10px;
+    padding: 7px 10px;
     font-size: 12px;
-    min-height: 34px;
+    min-height: 36px;
+    border-radius: 8px;
   }
 
   .app-header__btn-full {
@@ -4927,30 +4980,69 @@
   .app-body {
     flex: 1 1 auto;
     min-height: 0;
+    display: block;
+    position: relative;
   }
 
+  /* Mapa sempre em tela cheia no body */
   .app-map {
-    flex: 1 1 auto;
+    position: absolute;
+    inset: 0;
     width: 100%;
+    height: 100%;
     min-width: 0;
+    min-height: 0;
+    z-index: 1;
   }
 
-  /* Painéis como sheets sobre o mapa */
+  /* Backdrop escurece o mapa quando painel abre */
+  .app-mobile-backdrop {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 1400;
+    border: none;
+    margin: 0;
+    padding: 0;
+    background: rgba(4, 6, 10, 0.55);
+    backdrop-filter: blur(2px);
+    cursor: pointer;
+    animation: app-backdrop-in 0.2s ease both;
+  }
+
+  @keyframes app-backdrop-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* ── Bottom sheets (Central / Ops) ── */
   .app-left,
   .app-ops {
     position: absolute;
-    inset: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
     z-index: 1500;
     width: 100%;
+    height: min(88dvh, 100%);
+    max-height: min(88dvh, 100%);
     flex: none;
     border: none;
+    border-radius: 18px 18px 0 0;
     background: #0c0d12;
-    transform: translateY(105%);
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5);
+    transform: translateY(110%);
     transition:
-      transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-      visibility 0s linear 0.28s;
+      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0s linear 0.3s;
     pointer-events: none;
     visibility: hidden;
+    overflow: hidden;
   }
 
   .app-shell--mobile-ocorrencias .app-left,
@@ -4959,19 +5051,35 @@
     pointer-events: auto;
     visibility: visible;
     transition:
-      transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
       visibility 0s linear 0s;
   }
 
   .app-panel-mobile-bar {
     display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    flex: 0 0 auto;
+    padding: 8px 12px 10px;
+    border-bottom: 1px solid #2a2d38;
+    background: linear-gradient(180deg, #14161d 0%, #101115 100%);
+  }
+
+  .app-panel-mobile-bar__handle {
+    display: block;
+    width: 40px;
+    height: 4px;
+    margin: 0 auto 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .app-panel-mobile-bar__row {
+    display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    flex: 0 0 auto;
-    padding: 10px 12px;
-    border-bottom: 1px solid #2a2d38;
-    background: #101115;
   }
 
   .app-panel-mobile-bar__title {
@@ -4987,32 +5095,45 @@
     background: rgba(59, 130, 246, 0.14);
     color: #93c5fd;
     border-radius: 999px;
-    padding: 7px 14px;
+    padding: 8px 14px;
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
-    min-height: 36px;
+    min-height: 40px;
   }
 
   .app-ops .operations-panel {
     border-left: none;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .app-left__tabs {
+    flex: 0 0 auto;
   }
 
   .app-left__tab {
-    min-height: 44px;
+    min-height: 46px;
     font-size: 13px;
   }
 
-  /* Bottom navigation */
+  .app-left .dispatch-panel,
+  .app-left .civil-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  /* ── Bottom navigation ── */
   .app-mobile-nav {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     flex: 0 0 auto;
-    gap: 0;
-    background: #101115;
+    gap: 4px;
+    background: #0e1016;
     border-top: 1px solid #2a2d38;
-    padding: 4px 6px calc(4px + env(safe-area-inset-bottom, 0px));
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
     z-index: 1600;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
   }
 
   .app-mobile-nav__btn {
@@ -5021,25 +5142,38 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    min-height: 52px;
+    gap: 3px;
+    min-height: 54px;
     border: none;
     background: transparent;
     color: #8b90a0;
     cursor: pointer;
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 6px 4px;
     font: inherit;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
   }
 
   .app-mobile-nav__btn.is-active {
     color: #eef0f4;
-    background: rgba(59, 130, 246, 0.12);
+    background: rgba(59, 130, 246, 0.14);
+  }
+
+  .app-mobile-nav__btn--map.is-active {
+    color: #93c5fd;
+    background: rgba(59, 130, 246, 0.18);
   }
 
   .app-mobile-nav__icon {
-    font-size: 18px;
+    display: grid;
+    place-items: center;
     line-height: 1;
+  }
+
+  .app-mobile-nav__icon svg {
+    display: block;
   }
 
   .app-mobile-nav__label {
@@ -5051,7 +5185,7 @@
   .app-mobile-nav__badge {
     position: absolute;
     top: 4px;
-    right: calc(50% - 28px);
+    right: calc(50% - 26px);
     min-width: 18px;
     height: 18px;
     padding: 0 5px;
@@ -5064,9 +5198,10 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 0 0 2px #0e1016;
   }
 
-  /* Overlays / sheets no mapa → bottom sheet full-width */
+  /* ── Overlays no mapa → bottom sheet ── */
   .base-dash,
   .unit-action-menu,
   .unit-detail,
@@ -5078,14 +5213,13 @@
     bottom: 0;
     width: 100%;
     max-width: 100%;
-    max-height: min(88dvh, calc(100% - 8px));
+    max-height: min(85dvh, calc(100% - 8px));
     border-radius: 18px 18px 0 0;
     border-left: none;
     border-right: none;
     border-bottom: none;
   }
 
-  /* Alça visual de bottom sheet */
   .base-dash::before,
   .unit-action-menu::before,
   .unit-detail::before,
@@ -5109,7 +5243,7 @@
 
   .inc-dash {
     width: 100%;
-    max-height: min(92dvh, 100%);
+    max-height: min(90dvh, 100%);
     border-radius: 18px 18px 0 0;
     animation: inc-dash-in-mobile 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
@@ -5137,7 +5271,6 @@
     grid-template-columns: 1fr;
   }
 
-  /* Sheets ficam acima da bottom nav — sem safe-area extra no footer */
   .inc-dash__footer {
     padding: 12px 14px 14px;
     flex-wrap: wrap;
@@ -5151,7 +5284,9 @@
   .inc-card__base-btn,
   .inc-card__unit-btn,
   .base-dash__dept,
-  .base-dash__unit-main {
+  .base-dash__unit-main,
+  .civil-card,
+  .op-launch-card {
     min-height: 48px;
   }
 
@@ -5165,10 +5300,7 @@
     padding-bottom: 12px;
   }
 
-  /*
-   * Banners no topo — slots para não se sobreporem:
-   * alerta = slot 0; pick/follow = slot 1 quando há alerta via :has
-   */
+  /* Banners topo */
   .incident-alert-banner {
     top: 10px;
     left: 10px;
@@ -5219,7 +5351,6 @@
     border-radius: 12px;
   }
 
-  /* Com alerta ativo, empurra pick/follow para baixo */
   .app-map:has(.incident-alert-banner) .map-pick-banner,
   .app-map:has(.incident-alert-banner) .follow-banner {
     top: 72px;
@@ -5233,7 +5364,6 @@
     top: 132px;
   }
 
-  /* Telefone / chamada — canto inferior esquerdo evita zoom (bottom-right) */
   .ringing-widget {
     right: auto;
     left: 10px;
@@ -5245,7 +5375,6 @@
     width: 96px;
   }
 
-  /* Start screen */
   .start-screen {
     padding: 12px;
     padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
@@ -5274,17 +5403,16 @@
     min-height: 48px;
   }
 
-  /* Leaflet controls / popups */
   .leaflet-control-zoom a {
-    width: 40px !important;
-    height: 40px !important;
-    line-height: 40px !important;
+    width: 42px !important;
+    height: 42px !important;
+    line-height: 42px !important;
     font-size: 20px !important;
   }
 
   .leaflet-bottom.leaflet-right {
-    margin-bottom: 10px;
-    margin-right: 8px;
+    margin-bottom: 12px;
+    margin-right: 10px;
   }
 
   .leaflet-top.leaflet-right {
@@ -5292,18 +5420,13 @@
     margin-right: 8px;
   }
 
-  .leaflet-control-layers {
-    min-width: 40px;
-    min-height: 40px;
-  }
-
   .leaflet-control-layers-toggle {
-    width: 40px !important;
-    height: 40px !important;
+    width: 42px !important;
+    height: 42px !important;
   }
 
   .leaflet-control-attribution {
-    max-width: min(52vw, 220px);
+    max-width: min(48vw, 200px);
     font-size: 9px !important;
     line-height: 1.25 !important;
     overflow: hidden;
@@ -5321,10 +5444,6 @@
     border: none !important;
   }
 
-  .base-pin-hit {
-    pointer-events: auto;
-  }
-
   .dispatch-panel,
   .civil-panel {
     padding: 12px;
@@ -5336,19 +5455,47 @@
   }
 
   .ops-tabs button {
-    min-height: 42px;
+    min-height: 44px;
     font-size: 12px;
+  }
+
+  .operations-panel__header h2 {
+    font-size: 16px;
   }
 }
 
 @media (max-width: 480px) {
-  .app-header__actions {
+  .app-header {
     gap: 6px;
+  }
+
+  .app-header__brand {
+    flex: 0 0 auto;
+    max-width: 28%;
+  }
+
+  .app-header__chips {
+    flex: 1 1 auto;
+  }
+
+  .app-header__chip {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+
+  .app-header__actions {
+    gap: 5px;
   }
 
   .app-header__btn {
     padding: 6px 8px;
     font-size: 11px;
+  }
+
+  .app-left,
+  .app-ops {
+    height: min(92dvh, 100%);
+    max-height: min(92dvh, 100%);
   }
 
   .start-screen__features li {
@@ -5379,14 +5526,14 @@
   }
 }
 
-/* Landscape phone: painéis laterais mais baixos não — keep map usable */
-@media (max-width: 900px) and (max-height: 480px) and (orientation: landscape) {
+/* Landscape phone */
+@media (max-width: 1200px) and (max-height: 480px) and (orientation: landscape) {
   .app-header {
     padding-top: 4px;
     padding-bottom: 4px;
   }
 
-  .app-header__status {
+  .app-header__chips {
     display: none;
   }
 
@@ -5396,8 +5543,11 @@
     gap: 6px;
   }
 
-  .app-mobile-nav__icon {
-    font-size: 16px;
+  .app-left,
+  .app-ops {
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
   }
 
   .base-dash,
