@@ -17,6 +17,8 @@ import {
   type PoliceDecisionAction,
 } from './components/UnitDecisionSheet';
 import type { SceneAction } from './lib/sceneActions';
+import { actionDurationMs, makeLogEntry } from './lib/incidentRealism';
+import { useTacticalAI } from './hooks/useTacticalAI';
 import {
   createInterviewSession,
   type InterviewSession,
@@ -111,6 +113,13 @@ function App() {
   const [mobileView, setMobileView] = useState<'mapa' | 'ocorrencias' | 'operacoes'>('mapa');
   /** Sessões de apuração no local (diálogo com vítima/testemunha). */
   const [interviewSessions, setInterviewSessions] = useState<Record<string, InterviewSession>>({});
+  /**
+   * IA tática da corporação: guarnições atuam sozinhas no local
+   * (ações, hospital, delegacia, retorno à base).
+   */
+  const [aiAutonomous, setAiAutonomous] = useState(true);
+  const aiAutonomousRef = useRef(true);
+  aiAutonomousRef.current = aiAutonomous;
 
   const openMapView = useCallback(() => setMobileView('mapa'), []);
   const waitingIncidents = incidents.filter((i) => i.status === 'aguardando').length;
@@ -134,6 +143,11 @@ function App() {
   }, [overlay, selectedBaseId]);
 
   const openArrivalMenu = useCallback((unitId: string) => {
+    // com IA ligada, não interrompe o operador com sheet — a corporação age sozinha
+    if (aiAutonomousRef.current) {
+      setSelectedBaseId(null);
+      return;
+    }
     setOverlay({ kind: 'unit_decision', unitId });
     setSelectedBaseId(null);
     setMobileView('mapa');
@@ -217,17 +231,41 @@ function App() {
     setIncidents((prev) =>
       prev.map((i) => {
         if (i.id !== incidentId) return i;
+        const codeLabel = code === 3 ? 'código 3 (sirene)' : 'código 2';
         if (becomesPrimary) {
-          return { ...i, status: 'despachado', assignedUnitId: unitId };
+          return {
+            ...i,
+            status: 'despachado',
+            assignedUnitId: unitId,
+            log: [
+              ...(i.log ?? []),
+              makeLogEntry(`Despacho: ${unit.label} — ${codeLabel}`, 'despacho'),
+            ].slice(-40),
+          };
         }
         if (i.status === 'aguardando') {
-          return { ...i, status: 'despachado', assignedUnitId: i.assignedUnitId ?? unitId };
+          return {
+            ...i,
+            status: 'despachado',
+            assignedUnitId: i.assignedUnitId ?? unitId,
+            log: [
+              ...(i.log ?? []),
+              makeLogEntry(`Despacho: ${unit.label} — ${codeLabel}`, 'despacho'),
+            ].slice(-40),
+          };
         }
         // reforço: anota que outra unidade foi destacada (IA da guarnição no local)
         if (isReinforce) {
           const note = `[Reforço: ${unit.label} a caminho.]`;
           if (i.description.includes(note)) return i;
-          return { ...i, description: `${i.description} ${note}` };
+          return {
+            ...i,
+            description: `${i.description} ${note}`,
+            log: [
+              ...(i.log ?? []),
+              makeLogEntry(`Reforço: ${unit.label} a caminho (${codeLabel})`, 'apoio'),
+            ].slice(-40),
+          };
         }
         return i;
       })
@@ -648,7 +686,9 @@ function App() {
       action.effect === 'start_service' ||
       action.effect === 'start_service_preserve' ||
       action.effect === 'fire_role' ||
-      action.effect === 'request_support'
+      action.effect === 'request_support' ||
+      action.effect === 'identify' ||
+      action.effect === 'bo_local'
     );
   }
 
@@ -667,6 +707,8 @@ function App() {
           description: action.description,
           effect: action.effect,
           fireRole: action.fireRole,
+          durationMs: action.durationMs,
+          category: action.category,
         });
         return {
           ...u,
@@ -680,6 +722,16 @@ function App() {
     setOverlay({ kind: 'unit_decision', unitId });
   }
 
+  function logIncident(incidentId: string, text: string, kind: 'sistema' | 'despacho' | 'acao' | 'resultado' | 'apoio' = 'acao') {
+    setIncidents((prev) =>
+      prev.map((i) => {
+        if (i.id !== incidentId) return i;
+        const log = [...(i.log ?? []), makeLogEntry(text, kind)].slice(-40);
+        return { ...i, log };
+      })
+    );
+  }
+
   function executeSceneActionNow(unitId: string, action: SceneAction) {
     const unit = units.find((u) => u.id === unitId);
     if (!unit?.assignedIncidentId) return;
@@ -689,6 +741,7 @@ function App() {
 
     if (action.effect === 'apurar_fatos') {
       const key = `${unitId}:${incidentId}`;
+      logIncident(incidentId, `${unit.label}: iniciou apuração com vítima/testemunha`, 'acao');
       setInterviewSessions((prev) => {
         if (prev[key]) return prev;
         return { ...prev, [key]: createInterviewSession(incident, unitId) };
@@ -734,28 +787,72 @@ function App() {
       return;
     }
 
-    if (action.effect === 'delegacia') {
+    if (action.effect === 'delegacia' || action.effect === 'flagrante') {
+      logIncident(incidentId, `${unit.label}: ${action.title}`, 'acao');
       void handlePoliceDecision(unitId, 'delegacia');
       return;
     }
 
     if (action.effect === 'resolve_light') {
+      logIncident(incidentId, `${unit.label}: sem providências / falso alarme`, 'resultado');
       setUnits((prev) =>
-        prev.map((u) => (u.id === unitId ? { ...u, actionQueue: undefined } : u))
+        prev.map((u) => (u.id === unitId ? { ...u, actionQueue: undefined, activeSceneAction: undefined } : u))
       );
+      setScore((s) => s + 15);
       offerDispositionToUnitsOnIncident(incidentId, incident.title);
       return;
     }
 
-    if (action.effect === 'fire_role' && action.fireRole) {
+    if (action.effect === 'bo_local') {
+      const bo = `BO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 90000) + 10000)}`;
+      logIncident(incidentId, `${unit.label}: lavrando B.O. ${bo} no local`, 'acao');
       startIncidentService(incidentId, unitId, incidents, setIncidents, setUnits, {
-        fireRole: action.fireRole as import('./lib/fireTeams').FireTeamRole,
+        durationMs: action.durationMs ?? actionDurationMs(action, incident),
+        roleLabel: `B.O. ${bo}`,
+        activeSceneAction: {
+          id: action.id,
+          title: action.title,
+          description: action.description,
+          effect: action.effect,
+          durationMs: action.durationMs,
+          category: action.category,
+        },
       });
       setOverlay({ kind: 'unit_decision', unitId });
       return;
     }
 
-    startIncidentService(incidentId, unitId, incidents, setIncidents, setUnits);
+    if (action.effect === 'fire_role' && action.fireRole) {
+      logIncident(incidentId, `${unit.label}: ${action.title}`, 'acao');
+      startIncidentService(incidentId, unitId, incidents, setIncidents, setUnits, {
+        fireRole: action.fireRole as import('./lib/fireTeams').FireTeamRole,
+        activeSceneAction: {
+          id: action.id,
+          title: action.title,
+          description: action.description,
+          effect: action.effect,
+          fireRole: action.fireRole,
+        },
+      });
+      setOverlay({ kind: 'unit_decision', unitId });
+      return;
+    }
+
+    const duration = action.durationMs ?? actionDurationMs(action, incident);
+    logIncident(incidentId, `${unit.label}: ${action.title}`, 'acao');
+    startIncidentService(incidentId, unitId, incidents, setIncidents, setUnits, {
+      durationMs: duration,
+      roleLabel: action.title,
+      activeSceneAction: {
+        id: action.id,
+        title: action.title,
+        description: action.description,
+        effect: action.effect,
+        fireRole: action.fireRole,
+        durationMs: duration,
+        category: action.category,
+      },
+    });
 
     if (isCivilPoliceUnit(unit, CITY_BASES) && incident.civilCaseId) {
       const now = Date.now();
@@ -789,6 +886,7 @@ function App() {
             ? {
                 ...i,
                 description: `${i.description} [Reforço solicitado pela guarnição.]`,
+                log: [...(i.log ?? []), makeLogEntry(`${unit.label} solicitou reforço`, 'apoio')].slice(-40),
               }
             : i
         )
@@ -803,6 +901,9 @@ function App() {
                 ...i,
                 requiresCivilPolice: true,
                 description: `${i.description} [Local preservado pela guarnição.]`,
+                log: [...(i.log ?? []), makeLogEntry(`${unit.label}: local preservado para PC`, 'acao')].slice(
+                  -40
+                ),
               }
             : i
         )
@@ -853,6 +954,8 @@ function App() {
         description: next.description,
         effect: next.effect as SceneAction['effect'],
         fireRole: next.fireRole,
+        durationMs: next.durationMs,
+        category: next.category as SceneAction['category'],
       };
 
       queueLockRef.current.add(unit.id);
@@ -1179,7 +1282,9 @@ function App() {
       setUnits((prev) =>
         prev.map((u) => (u.id === unitId ? { ...u, pendingDecision: 'hospital' } : u))
       );
-      setOverlay({ kind: 'unit_decision', unitId });
+      if (!aiAutonomousRef.current) {
+        setOverlay({ kind: 'unit_decision', unitId });
+      }
       return;
     }
 
@@ -1248,6 +1353,26 @@ function App() {
       setUnits((prev) => prev.map((u) => (u.id === unitId ? applyRoute(u, route) : u)));
     }
   }
+
+  // IA tática: corporação age sozinha na chegada e nas decisões
+  useTacticalAI({
+    enabled: aiAutonomous && started && !paused,
+    started,
+    paused,
+    units,
+    incidents,
+    bases: CITY_BASES,
+    setIncidents,
+    onSceneAction: handleSceneAction,
+    onPoliceAction: (unitId, action) => {
+      void handlePoliceDecision(unitId, action);
+    },
+    onCivilAction: handleCivilAction,
+    onDisposition: handleDisposition,
+    onHospital: (unitId, hospitalId) => {
+      void handleHospitalTransport(unitId, hospitalId);
+    },
+  });
 
   function handleSelectUnitOnMap(unitId: string) {
     const unit = units.find((u) => u.id === unitId);
@@ -1353,6 +1478,19 @@ function App() {
         </div>
         {started && (
           <div className="app-header__actions">
+            <button
+              type="button"
+              className={`app-header__btn app-header__btn--ai${aiAutonomous ? ' is-on' : ''}`}
+              onClick={() => setAiAutonomous((v) => !v)}
+              title={
+                aiAutonomous
+                  ? 'IA da corporação ATIVA — guarnições atuam sozinhas no local'
+                  : 'IA desligada — você decide cada ação no local'
+              }
+            >
+              <span className="app-header__btn-full">{aiAutonomous ? 'IA corporação: ON' : 'IA corporação: OFF'}</span>
+              <span className="app-header__btn-short">{aiAutonomous ? 'IA ON' : 'IA OFF'}</span>
+            </button>
             <button type="button" className="app-header__btn" onClick={() => setPaused((p) => !p)}>
               <span className="app-header__btn-full">{paused ? 'Retomar ocorrências' : 'Pausar ocorrências'}</span>
               <span className="app-header__btn-short">{paused ? 'Retomar' : 'Pausar'}</span>
@@ -1438,6 +1576,18 @@ function App() {
         </div>
         <main className="app-map">
           {!started && <StartScreen onStart={() => setStarted(true)} />}
+          {started && (
+            <div
+              className={`ai-status-pill${aiAutonomous ? '' : ' ai-status-pill--off'}`}
+              role="status"
+              aria-live="polite"
+            >
+              <span className="ai-status-pill__dot" aria-hidden />
+              {aiAutonomous
+                ? 'IA tática ativa — guarnições atuam no local'
+                : 'IA off — controle manual das ações'}
+            </div>
+          )}
           {ringingIncident && (
             <RingingOverlay
               onAnswer={answerCall}

@@ -63,8 +63,10 @@ function IncidentListCard({
           <div className="inc-card__titles">
             <strong>{incident.title}</strong>
             <span className="inc-card__meta">
+              {incident.protocolNumber ? `${incident.protocolNumber} · ` : ''}
               {LABEL_BY_INCIDENT_TYPE[incident.type]}
               {incident.zone ? ` · ${LABEL_BY_ZONE[incident.zone] ?? incident.zone}` : ''}
+              {(incident.victimCount ?? 0) > 0 ? ` · ${incident.victimCount} vit.` : ''}
             </span>
           </div>
           <span className={`inc-card__pri inc-card__pri--${incident.priority}`}>P{incident.priority}</span>
@@ -75,6 +77,10 @@ function IncidentListCard({
         <div className="inc-card__badges">
           <span className={`inc-card__badge inc-card__badge--${incident.status}`}>{statusLabel(incident.status)}</span>
           {isMedical && <span className="inc-card__badge inc-card__badge--hint">Bombeiros</span>}
+          {incident.armed && <span className="inc-card__badge inc-card__badge--aguardando">Arma</span>}
+          {incident.requiresCivilPolice && (
+            <span className="inc-card__badge inc-card__badge--hint">PC</span>
+          )}
           {assignedUnits.length > 1 && (
             <span className="inc-card__badge inc-card__badge--hint">{assignedUnits.length} un.</span>
           )}

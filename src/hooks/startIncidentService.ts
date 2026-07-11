@@ -17,7 +17,14 @@ export function startIncidentService(
   incidents: Incident[],
   setIncidents: SetIncidents,
   setUnits: SetUnits,
-  options?: { fireRole?: FireTeamRole }
+  options?: {
+    fireRole?: FireTeamRole;
+    /** Duração custom da ação escolhida. */
+    durationMs?: number;
+    roleLabel?: string;
+    /** Ação ativa para resultado ao terminar. */
+    activeSceneAction?: Unit['activeSceneAction'];
+  }
 ): void {
   const incident = incidents.find((i) => i.id === incidentId);
   if (!incident) return;
@@ -37,6 +44,15 @@ export function startIncidentService(
         durationMs: fireRoleDurationMs(options.fireRole, incident),
       };
     }
+    if (options?.durationMs) {
+      plan = {
+        ...plan,
+        durationMs: options.durationMs,
+        roleLabel: options.roleLabel ?? plan.roleLabel,
+      };
+    } else if (options?.roleLabel) {
+      plan = { ...plan, roleLabel: options.roleLabel };
+    }
 
     const actorEnds = now + plan.durationMs;
     const assignedRoles: FireTeamRole[] = [plan.role as FireTeamRole];
@@ -55,6 +71,7 @@ export function startIncidentService(
           serviceEndsAt: actorEnds,
           missionEndsAt: actorEnds,
           actionQueue: u.actionQueue ?? [],
+          activeSceneAction: options?.activeSceneAction,
         };
       }
 

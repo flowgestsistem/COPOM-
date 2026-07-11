@@ -186,24 +186,48 @@ export function UnitDecisionSheet({
             </div>
           )}
           <ul className="unit-decision__actions">
-            {sceneActions.map((action) => (
-              <li key={action.id}>
-                <button
-                  type="button"
-                  className="unit-decision__action"
-                  onClick={() => onSceneAction(action)}
-                >
-                  <strong>
-                    {busy ? '＋ ' : ''}
-                    {action.title}
-                  </strong>
-                  <span>
-                    {busy ? 'Enfileirar · ' : ''}
-                    {action.description}
-                  </span>
-                </button>
-              </li>
-            ))}
+            {sceneActions.map((action) => {
+              const cat =
+                action.category === 'socorro'
+                  ? 'Socorro'
+                  : action.category === 'tatica'
+                    ? 'Tática'
+                    : action.category === 'investigativa'
+                      ? 'Investigativa'
+                      : action.category === 'assistencial'
+                        ? 'Assistencial'
+                        : action.category === 'administrativa'
+                          ? 'Administrativa'
+                          : null;
+              const mins = action.durationMs
+                ? Math.max(1, Math.round(action.durationMs / 60_000))
+                : null;
+              return (
+                <li key={action.id}>
+                  <button
+                    type="button"
+                    className={`unit-decision__action${action.risk === 3 ? ' unit-decision__action--risk' : ''}`}
+                    onClick={() => onSceneAction(action)}
+                  >
+                    <strong>
+                      {busy ? '＋ ' : ''}
+                      {action.title}
+                    </strong>
+                    <span>
+                      {busy ? 'Enfileirar · ' : ''}
+                      {action.description}
+                      {(cat || mins || action.risk) && (
+                        <em className="unit-decision__action-meta">
+                          {[cat, mins ? `~${mins} min` : null, action.risk === 3 ? 'alto risco' : action.risk === 2 ? 'risco médio' : null]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </em>
+                      )}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
@@ -233,30 +257,32 @@ export function UnitDecisionSheet({
 
       {isPolice && (
         <div className="unit-decision__body">
-          <p className="unit-decision__lead">Escolha a ação referente a esta ocorrência.</p>
+          <p className="unit-decision__lead">
+            Encerramento policial — escolha a providência formal após as ações no local.
+          </p>
           <ul className="unit-decision__actions">
             <li>
-              <button type="button" className="unit-decision__action" onClick={() => onPoliceAction('delegacia')}>
-                <strong>Conduzir à delegacia</strong>
-                <span>Preso / conduzido para a delegacia civil</span>
+              <button type="button" className="unit-decision__action unit-decision__action--risk" onClick={() => onPoliceAction('delegacia')}>
+                <strong>Conduzir à delegacia (flagrante)</strong>
+                <span>Preso / autuado para autoridade policial civil</span>
               </button>
             </li>
             <li>
               <button type="button" className="unit-decision__action" onClick={() => onPoliceAction('hospital')}>
-                <strong>Encaminhar a hospital</strong>
+                <strong>Encaminhar a hospital / UAI</strong>
                 <span>Vítima ou envolvido necessita atendimento médico</span>
               </button>
             </li>
             <li>
               <button type="button" className="unit-decision__action" onClick={() => onPoliceAction('liberar')}>
-                <strong>Liberar no local</strong>
-                <span>Sem condução — encerra atendimento</span>
+                <strong>Liberar no local com orientação</strong>
+                <span>Sem condução — partes orientadas e liberadas</span>
               </button>
             </li>
             <li>
               <button type="button" className="unit-decision__action" onClick={() => onPoliceAction('encerrar')}>
-                <strong>Encerrar ocorrência</strong>
-                <span>Providências no local concluídas</span>
+                <strong>Encerrar com B.O. / providências</strong>
+                <span>Atendimento concluído; ocorrência pode ser fechada</span>
               </button>
             </li>
           </ul>

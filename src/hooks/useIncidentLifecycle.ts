@@ -8,6 +8,7 @@ import {
   pickFireRoleForUnit,
   type FireTeamRole,
 } from '../lib/fireTeams';
+import { makeLogEntry, outcomeForCompletedAction } from '../lib/incidentRealism';
 
 export { startIncidentService } from './startIncidentService';
 
@@ -49,6 +50,50 @@ export function useIncidentLifecycle(
       if (!incident) continue;
 
       const queued = unit.actionQueue?.length ?? 0;
+      const active = unit.activeSceneAction;
+      const outcome = active
+        ? outcomeForCompletedAction(
+            { id: active.id, title: active.title, effect: active.effect },
+            incident,
+            unit
+          )
+        : null;
+
+      // diário + bônus de pontuação por ação concluída
+      if (outcome) {
+        setIncidents((prev) =>
+          prev.map((i) => {
+            if (i.id !== incident.id) return i;
+            const log = [...(i.log ?? []), makeLogEntry(outcome.note, 'resultado')].slice(-40);
+            const outcomes = [...(i.outcomes ?? []), outcome.note].slice(-20);
+            let next = {
+              ...i,
+              log,
+              outcomes,
+              description: i.description.includes(outcome.note)
+                ? i.description
+                : `${i.description} [${outcome.note}]`,
+            };
+            if (outcome.forcePreserve || outcome.forceCivil) {
+              next = { ...next, requiresCivilPolice: true };
+            }
+            return next;
+          })
+        );
+        if (outcome.scoreBonus > 0) onScore(outcome.scoreBonus);
+      }
+
+      const nextDecision =
+        queued > 0
+          ? ('acoes_local' as const)
+          : outcome?.nextDecision === 'policia'
+            ? ('policia' as const)
+            : outcome?.nextDecision === 'hospital'
+              ? ('hospital' as const)
+              : outcome?.nextDecision === 'disposicao'
+                ? ('disposicao' as const)
+                : ('acoes_local' as const);
+
       setUnits((prev) =>
         prev.map((u) =>
           u.id === unit.id
@@ -56,16 +101,24 @@ export function useIncidentLifecycle(
                 ...u,
                 serviceEndsAt: undefined,
                 missionEndsAt: undefined,
+                activeSceneAction: undefined,
                 status: 'no_local' as const,
-                pendingDecision: 'acoes_local' as const,
+                pendingDecision: nextDecision,
                 pendingIncidentTitle:
                   queued > 0
                     ? `Tarefa ok (${u.serviceRoleLabel ?? 'ação'}) — próxima na fila (${queued}) · ${incident.title}`
-                    : `Tarefa concluída (${u.serviceRoleLabel ?? 'atendimento'}) — pode enfileirar outra · ${incident.title}`,
+                    : outcome
+                      ? `${outcome.note.split(':').slice(1).join(':').trim() || 'Tarefa concluída'} · ${incident.title}`
+                      : `Tarefa concluída (${u.serviceRoleLabel ?? 'atendimento'}) — pode enfileirar outra · ${incident.title}`,
               }
             : u
         )
       );
+
+      if (nextDecision !== 'acoes_local' && queued === 0) {
+        playDecisionBeep();
+        onArrivalMenu?.(unit.id);
+      }
     }
 
     // â”€â”€â”€ Apoio chega com ocorrÃªncia em andamento â”€â”€â”€

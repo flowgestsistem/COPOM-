@@ -10,6 +10,8 @@ import {
 import { CUSTOM_INCIDENT_ICONS } from '../lib/customIcons';
 import { availableUnitsByBase, formatDistance } from '../lib/dispatch';
 import { formatServiceRemaining } from '../lib/fireTeams';
+import { callerLabel, tagLabel } from '../lib/incidentRealism';
+import type { IncidentTag } from '../types/game';
 
 function statusLabel(status: Incident['status']): string {
   switch (status) {
@@ -149,6 +151,16 @@ export function IncidentDashboard({
           <section className="inc-dash__section">
             <h3>Detalhes</h3>
             <p className="inc-dash__desc">{incident.description}</p>
+            {(incident.tags?.length ?? 0) > 0 && (
+              <div className="inc-dash__tags">
+                {incident.tags!.map((t) => (
+                  <span key={t} className={`inc-dash__tag inc-dash__tag--${t}`}>
+                    {tagLabel(t as IncidentTag)}
+                  </span>
+                ))}
+                {incident.armed && <span className="inc-dash__tag inc-dash__tag--arma">Arma informada</span>}
+              </div>
+            )}
             <dl className="inc-dash__meta">
               <div>
                 <dt>Status</dt>
@@ -159,12 +171,26 @@ export function IncidentDashboard({
                 </dd>
               </div>
               <div>
+                <dt>Protocolo</dt>
+                <dd>{incident.protocolNumber ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>Solicitante</dt>
+                <dd>{incident.caller ? callerLabel(incident.caller) : '—'}</dd>
+              </div>
+              <div>
                 <dt>Registrada às</dt>
                 <dd>{formatTime(incident.createdAt)}</dd>
               </div>
               <div>
                 <dt>Zona</dt>
                 <dd>{incident.zone ? LABEL_BY_ZONE[incident.zone] ?? incident.zone : '—'}</dd>
+              </div>
+              <div>
+                <dt>Vítimas / suspeitos</dt>
+                <dd>
+                  {incident.victimCount ?? 0} vit. · {incident.suspectCount ?? 0} susp.
+                </dd>
               </div>
               <div>
                 <dt>Coordenadas</dt>
@@ -186,6 +212,11 @@ export function IncidentDashboard({
                 Exige Polícia Civil — viatura PC é despachada automaticamente (se disponível).
               </p>
             )}
+            {incident.armed && (
+              <p className="inc-dash__hint inc-dash__hint--multi">
+                Informação de arma de fogo — priorizar perímetro e reforço tático.
+              </p>
+            )}
             {assignedUnits.length > 1 && (
               <p className="inc-dash__hint inc-dash__hint--multi">
                 {onSceneCount > 0 && enRouteCount > 0
@@ -196,6 +227,24 @@ export function IncidentDashboard({
               </p>
             )}
           </section>
+
+          {(incident.log?.length ?? 0) > 0 && (
+            <section className="inc-dash__section">
+              <h3>Diário operacional</h3>
+              <ul className="inc-dash__log">
+                {[...(incident.log ?? [])]
+                  .slice()
+                  .reverse()
+                  .slice(0, 12)
+                  .map((entry) => (
+                    <li key={entry.id} className={`inc-dash__log-item inc-dash__log-item--${entry.kind}`}>
+                      <time>{formatTime(entry.at)}</time>
+                      <span>{entry.text}</span>
+                    </li>
+                  ))}
+              </ul>
+            </section>
+          )}
 
           {assignedUnits.length > 0 && (
             <section className="inc-dash__section">

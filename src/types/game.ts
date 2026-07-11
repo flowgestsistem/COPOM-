@@ -13,6 +13,40 @@ export type IncidentStatus =
 
 export type IncidentZone = 'urbano' | 'rural' | 'rodovia' | 'rio';
 
+/** Origem do chamado (190/193). */
+export type IncidentCaller =
+  | 'vitima'
+  | 'testemunha'
+  | 'anonimo'
+  | 'alarme'
+  | 'camera'
+  | 'policial'
+  | 'hospital'
+  | 'comercio';
+
+/** Tags semânticas para ações e realismo. */
+export type IncidentTag =
+  | 'violencia'
+  | 'arma'
+  | 'transito'
+  | 'drogas'
+  | 'patrimonio'
+  | 'domestica'
+  | 'pessoa'
+  | 'rural'
+  | 'incendio'
+  | 'medico'
+  | 'aquatico'
+  | 'ordem'
+  | 'flagrante';
+
+export interface IncidentLogEntry {
+  id: string;
+  at: number;
+  text: string;
+  kind: 'sistema' | 'despacho' | 'acao' | 'resultado' | 'apoio';
+}
+
 export interface Incident {
   id: string;
   type: IncidentType;
@@ -32,6 +66,19 @@ export interface Incident {
   civilUnitId?: string;
   /** Caso aberto na aba da Polícia Civil. */
   civilCaseId?: string;
+  /** Protocolo COPOM (ex.: 2026-041287). */
+  protocolNumber?: string;
+  /** Quem acionou a central. */
+  caller?: IncidentCaller;
+  /** Classificação tática da ocorrência. */
+  tags?: IncidentTag[];
+  victimCount?: number;
+  suspectCount?: number;
+  armed?: boolean;
+  /** Diário operacional do atendimento. */
+  log?: IncidentLogEntry[];
+  /** Resultados de ações já concluídas. */
+  outcomes?: string[];
 }
 
 /** Andamento de casos da Polícia Civil. */
@@ -87,6 +134,8 @@ export interface QueuedSceneAction {
   description: string;
   effect: string;
   fireRole?: string;
+  durationMs?: number;
+  category?: string;
 }
 
 /** 2 = sem sirene · 3 = com sirene (emergência). */
@@ -143,6 +192,8 @@ export interface Unit {
    * Enquanto uma roda (serviceEndsAt), as demais esperam e disparam em sequência.
    */
   actionQueue?: QueuedSceneAction[];
+  /** Última ação de cena em execução (para resultado ao terminar). */
+  activeSceneAction?: QueuedSceneAction;
   route?: LatLng[];
   routeProgress?: number; // 0..1
   routeStartedAt?: number;
