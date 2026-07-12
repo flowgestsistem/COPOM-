@@ -1596,7 +1596,17 @@ function App() {
               secondsLeft={ringSecondsLeft}
             />
           )}
-          {currentAlert && <IncidentAlertBanner incident={currentAlert} onDismiss={dismissAlert} />}
+          {currentAlert && (
+            <IncidentAlertBanner
+              incident={currentAlert}
+              onDismiss={dismissAlert}
+              onOpen={(inc) => {
+                dismissAlert();
+                setOverlay({ kind: 'incident_dash', incidentId: inc.id });
+                setFocusLocation([...inc.location]);
+              }}
+            />
+          )}
           {pickBanner && (
             <MapPickBanner title={pickBanner.title} subtitle={pickBanner.subtitle} onCancel={cancelMapPick} />
           )}
