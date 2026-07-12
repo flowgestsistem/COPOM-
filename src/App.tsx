@@ -1522,7 +1522,7 @@ function App() {
               </button>
             </div>
           </div>
-          <div className="app-left__tabs" role="tablist" aria-label="Painel esquerdo">
+          <div className="app-left__tabs" role="tablist" aria-label="Painéis da central">
             <button
               type="button"
               role="tab"
@@ -1530,6 +1530,9 @@ function App() {
               aria-selected={leftTab === 'ocorrencias'}
               onClick={() => setLeftTab('ocorrencias')}
             >
+              <span className="app-left__tab-ico" aria-hidden>
+                📡
+              </span>
               Ocorrências
               {waitingIncidents > 0 && <em>{waitingIncidents}</em>}
             </button>
@@ -1540,6 +1543,9 @@ function App() {
               aria-selected={leftTab === 'civil'}
               onClick={() => setLeftTab('civil')}
             >
+              <span className="app-left__tab-ico" aria-hidden>
+                ⚖
+              </span>
               Polícia Civil
               {activeCivilCases > 0 && <em>{activeCivilCases}</em>}
             </button>
