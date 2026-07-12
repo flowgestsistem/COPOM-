@@ -1,10 +1,8 @@
 import { memo, useMemo } from 'react';
-import L from 'leaflet';
-import { Marker, Popup } from 'react-leaflet';
-import type { CityBase } from '../types/city';
-import type { Incident, Operation, Unit } from '../types/game';
+import L, { DomEvent } from 'leaflet';
+import { Marker } from 'react-leaflet';
+import type { Unit } from '../types/game';
 import { COLOR_BY_UNIT_TYPE, LABEL_BY_UNIT_STATUS } from '../lib/labels';
-import { buildUnitDetail } from '../lib/unitDetail';
 
 const PHOTO = 44;
 const HIT = 58;
@@ -102,124 +100,17 @@ ${sirenHtml}
   });
 }
 
-function UnitPopup({
-  unit,
-  incidents,
-  operations,
-  bases,
-}: {
-  unit: Unit;
-  incidents: Incident[];
-  operations: Operation[];
-  bases: CityBase[];
-}) {
-  const d = buildUnitDetail(unit, incidents, operations, bases);
-  const photoSrc = resolvePhotoSrc(unit.photoUrl);
-
-  return (
-    <Popup className="unit-popup" maxWidth={300} minWidth={260}>
-      <div className="unit-popup__card">
-        {photoSrc ? (
-          <img
-            src={photoSrc}
-            alt=""
-            className="unit-popup__photo"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = 'none';
-            }}
-          />
-        ) : null}
-        <div className="unit-popup__head">
-          <strong>{d.headline}</strong>
-          <span>
-            {d.department} · {d.typeLabel}
-          </span>
-        </div>
-
-        <div className="unit-popup__row">
-          <span className="unit-popup__label">Status</span>
-          <span className="unit-popup__value">
-            {d.statusLabel}
-            {d.codeLabel ? ` · ${d.codeLabel}` : ''}
-          </span>
-        </div>
-
-        {d.missionLabel && (
-          <div className="unit-popup__row">
-            <span className="unit-popup__label">Missão</span>
-            <span className="unit-popup__value">{d.missionLabel}</span>
-          </div>
-        )}
-
-        {d.destination && (
-          <div className="unit-popup__block">
-            <span className="unit-popup__label">Destino</span>
-            <strong className="unit-popup__dest">{d.destination.title}</strong>
-            <span className="unit-popup__muted">{d.destination.detail}</span>
-            {d.routeProgressPct !== null && (
-              <span className="unit-popup__muted">
-                Trajeto {d.routeProgressPct}%
-                {d.etaLabel ? ` · ${d.etaLabel}` : ''}
-              </span>
-            )}
-          </div>
-        )}
-
-        <div className={`unit-popup__cargo unit-popup__cargo--${d.cargo.kind}`}>
-          <span className="unit-popup__label">
-            {unit.type === 'viatura' ? 'Condução' : 'Paciente / vítima'}
-          </span>
-          <strong>{d.cargo.title}</strong>
-          {d.cargo.reason && <span className="unit-popup__muted">{d.cargo.reason}</span>}
-        </div>
-
-        {d.incident && (
-          <div className="unit-popup__block">
-            <span className="unit-popup__label">Ocorrência</span>
-            <strong className="unit-popup__dest">{d.incident.title}</strong>
-            <span className="unit-popup__muted">
-              {d.incident.typeLabel}
-              {d.incident.zone ? ` · ${d.incident.zone}` : ''} · P{d.incident.priority}
-            </span>
-          </div>
-        )}
-
-        {d.service && (
-          <div className="unit-popup__row">
-            <span className="unit-popup__label">No local</span>
-            <span className="unit-popup__value">
-              {d.service.role}
-              {d.service.remaining ? ` · ${d.service.remaining}` : ''}
-            </span>
-          </div>
-        )}
-
-        {d.pendingHint && <p className="unit-popup__hint">{d.pendingHint} — toque para abrir</p>}
-        {!d.pendingHint && (
-          <p className="unit-popup__hint unit-popup__hint--soft">Toque no ícone para o painel completo</p>
-        )}
-      </div>
-    </Popup>
-  );
-}
-
+/** Um único painel (UnitDetailPanel) é aberto no clique — sem popup Leaflet. */
 const UnitMapMarker = memo(function UnitMapMarker({
   unit,
-  incidents,
-  operations,
-  bases,
   onSelect,
 }: {
   unit: Unit;
-  incidents: Incident[];
-  operations: Operation[];
-  bases: CityBase[];
   onSelect?: (unitId: string) => void;
 }) {
   const attention = unit.status === 'aguardando_decisao';
   const icon = useMemo(
     () => buildUnitIcon(unit, attention),
-    // recria ícone quando visual muda
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       unit.id,
@@ -240,15 +131,16 @@ const UnitMapMarker = memo(function UnitMapMarker({
       eventHandlers={
         onSelect
           ? {
-              click: () => onSelect(unit.id),
+              click: (e) => {
+                DomEvent.stopPropagation(e.originalEvent);
+                onSelect(unit.id);
+              },
             }
           : undefined
       }
       zIndexOffset={attention ? 900 : unit.responseCode === 3 ? 700 : unit.pendingDecision ? 600 : 200}
       title={`${unit.label} — ${LABEL_BY_UNIT_STATUS[unit.status]}`}
-    >
-      <UnitPopup unit={unit} incidents={incidents} operations={operations} bases={bases} />
-    </Marker>
+    />
   );
 });
 
@@ -258,15 +150,13 @@ function isVisibleOnMap(unit: Unit): boolean {
 
 export function UnitMarkers({
   units,
-  incidents = [],
-  operations = [],
-  bases = [],
   onSelectUnit,
 }: {
   units: Unit[];
-  incidents?: Incident[];
-  operations?: Operation[];
-  bases?: CityBase[];
+  /** mantidos por compatibilidade com CityMap */
+  incidents?: unknown[];
+  operations?: unknown[];
+  bases?: unknown[];
   onSelectUnit?: (unitId: string) => void;
 }) {
   const visible = units.filter(isVisibleOnMap);
@@ -274,14 +164,7 @@ export function UnitMarkers({
   return (
     <>
       {visible.map((unit) => (
-        <UnitMapMarker
-          key={unit.id}
-          unit={unit}
-          incidents={incidents}
-          operations={operations}
-          bases={bases}
-          onSelect={onSelectUnit}
-        />
+        <UnitMapMarker key={unit.id} unit={unit} onSelect={onSelectUnit} />
       ))}
     </>
   );

@@ -20,6 +20,8 @@ import type { SceneAction } from './lib/sceneActions';
 import { actionDurationMs, makeLogEntry } from './lib/incidentRealism';
 import { useTacticalAI } from './hooks/useTacticalAI';
 import { radioDispatch } from './lib/policeProtocol';
+import { AiOpsFeed } from './components/AiOpsFeed';
+import type { AiOpsEvent } from './lib/aiOpsFeed';
 import {
   createInterviewSession,
   type InterviewSession,
@@ -121,6 +123,11 @@ function App() {
   const [aiAutonomous, setAiAutonomous] = useState(true);
   const aiAutonomousRef = useRef(true);
   aiAutonomousRef.current = aiAutonomous;
+  /** Feed de ações da IA no local (operador só acompanha). */
+  const [aiOpsEvents, setAiOpsEvents] = useState<AiOpsEvent[]>([]);
+  const pushAiOps = useCallback((event: AiOpsEvent) => {
+    setAiOpsEvents((prev) => [event, ...prev].slice(0, 24));
+  }, []);
 
   const openMapView = useCallback(() => setMobileView('mapa'), []);
   const waitingIncidents = incidents.filter((i) => i.status === 'aguardando').length;
@@ -1367,6 +1374,7 @@ function App() {
     onHospital: (unitId, hospitalId) => {
       void handleHospitalTransport(unitId, hospitalId);
     },
+    onNotify: pushAiOps,
   });
 
   function handleSelectUnitOnMap(unitId: string) {
@@ -1416,6 +1424,7 @@ function App() {
     setCivilCases([]);
     setLeftTab('ocorrencias');
     setMobileView('mapa');
+    setAiOpsEvents([]);
     setUnits(basesToUnits(CITY_BASES));
   }
 
@@ -1585,9 +1594,15 @@ function App() {
             >
               <span className="ai-status-pill__dot" aria-hidden />
               {aiAutonomous
-                ? 'IA tática ativa — guarnições atuam no local'
+                ? 'IA tática ativa — guarnições resolvem sozinhas no local'
                 : 'IA off — controle manual das ações'}
             </div>
+          )}
+          {started && aiAutonomous && (
+            <AiOpsFeed
+              events={aiOpsEvents}
+              onDismiss={(id) => setAiOpsEvents((prev) => prev.filter((e) => e.id !== id))}
+            />
           )}
           {ringingIncident && (
             <RingingOverlay

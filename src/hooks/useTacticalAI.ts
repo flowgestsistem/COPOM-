@@ -13,6 +13,7 @@ import { makeLogEntry } from '../lib/incidentRealism';
 import type { SceneAction } from '../lib/sceneActions';
 import type { CivilDecisionAction, DispositionAction, PoliceDecisionAction } from '../components/UnitDecisionSheet';
 import { radioClosing, radioOnScene } from '../lib/policeProtocol';
+import { formatReturnMessage, makeAiOpsEvent, type AiOpsEvent } from '../lib/aiOpsFeed';
 
 type SetIncidents = (updater: (prev: Incident[]) => Incident[]) => void;
 
@@ -22,12 +23,12 @@ type AIHandlers = {
   onCivilAction: (unitId: string, action: CivilDecisionAction) => void;
   onDisposition: (unitId: string, action: DispositionAction) => void;
   onHospital: (unitId: string, hospitalBaseId: string) => void;
+  onNotify?: (event: AiOpsEvent) => void;
 };
 
 /**
- * IA autônoma da corporação:
- * - ao chegar no local, monta plano tático e executa ações
- * - após tarefas, resolve hospital / delegacia / disposição sozinha
+ * IA autônoma da corporação — resolve no local sem o operador.
+ * Notifica cada passo (chegada, ações, retorno/base ou condução de preso).
  */
 export function useTacticalAI({
   enabled,
@@ -42,6 +43,7 @@ export function useTacticalAI({
   onCivilAction,
   onDisposition,
   onHospital,
+  onNotify,
 }: {
   enabled: boolean;
   started: boolean;
@@ -51,15 +53,16 @@ export function useTacticalAI({
   bases: CityBase[];
   setIncidents: SetIncidents;
 } & AIHandlers) {
-  /** Evita reprocessar o mesmo “estado” da unidade. */
   const handledRef = useRef<Set<string>>(new Set());
   const timersRef = useRef<number[]>([]);
+  const notifiedReturnRef = useRef<Set<string>>(new Set());
   const handlersRef = useRef<AIHandlers>({
     onSceneAction,
     onPoliceAction,
     onCivilAction,
     onDisposition,
     onHospital,
+    onNotify,
   });
   handlersRef.current = {
     onSceneAction,
@@ -67,6 +70,11 @@ export function useTacticalAI({
     onCivilAction,
     onDisposition,
     onHospital,
+    onNotify,
+  };
+
+  const notify = (event: AiOpsEvent) => {
+    handlersRef.current.onNotify?.(event);
   };
 
   useEffect(() => {
@@ -75,6 +83,49 @@ export function useTacticalAI({
       timersRef.current = [];
     };
   }, []);
+
+  // Avisa o operador quando a unidade começa a voltar ou conduzir preso
+  useEffect(() => {
+    if (!enabled || !started) return;
+    for (const unit of units) {
+      if (unit.status === 'retornando') {
+        const key = `ret:${unit.id}:${unit.routeStartedAt ?? 'x'}`;
+        if (notifiedReturnRef.current.has(key)) continue;
+        notifiedReturnRef.current.add(key);
+        notify(
+          makeAiOpsEvent({
+            kind: 'retorno_base',
+            unitId: unit.id,
+            unitLabel: unit.label,
+            unitType: unit.type,
+            message: formatReturnMessage(unit.label, unit.type, false),
+            detail:
+              unit.type === 'bombeiro' || unit.type === 'ambulancia'
+                ? 'Corpo de Bombeiros — QAP na base após atendimento.'
+                : 'Polícia Militar — retornando ao batalhão / sede.',
+            important: true,
+          })
+        );
+      }
+      if (unit.status === 'levando_preso') {
+        const key = `preso:${unit.id}:${unit.routeStartedAt ?? 'x'}`;
+        if (notifiedReturnRef.current.has(key)) continue;
+        notifiedReturnRef.current.add(key);
+        notify(
+          makeAiOpsEvent({
+            kind: 'conduzindo_preso',
+            unitId: unit.id,
+            unitLabel: unit.label,
+            unitType: unit.type,
+            message: formatReturnMessage(unit.label, unit.type, true),
+            detail: 'Polícia Militar — deslocamento à autoridade policial (delegacia).',
+            important: true,
+          })
+        );
+      }
+    }
+    if (notifiedReturnRef.current.size > 120) notifiedReturnRef.current.clear();
+  }, [units, enabled, started]);
 
   useEffect(() => {
     if (!enabled || !started || paused) return;
@@ -87,7 +138,7 @@ export function useTacticalAI({
     };
 
     for (const unit of units) {
-      // ─── Chegada: planejar e executar ───
+      // ─── Chegada: plano + execução autônoma ───
       if (unit.pendingDecision === 'chegada' && unit.assignedIncidentId) {
         const incident = incidents.find((i) => i.id === unit.assignedIncidentId);
         if (!incident) continue;
@@ -98,12 +149,20 @@ export function useTacticalAI({
 
         handledRef.current.add(key);
         const plan = planTacticalResponse(incident, unit, units, bases);
-        // modo autônomo: pula diálogo interativo (apuração manual fica para o operador)
         const actions = plan.actions.filter((a) => a.effect !== 'apurar_fatos');
-        if (actions.length === 0 && plan.actions[0]) {
-          // se só tinha apuração, usa a 2ª melhor via re-plan sem filtro — pega start_service
+        if (actions.length === 0) {
           const fallback = plan.actions.find((a) => a.effect !== 'apurar_fatos');
           if (fallback) actions.push(fallback);
+        }
+        // garante pelo menos atendimento padrão
+        if (actions.length === 0) {
+          actions.push({
+            id: 'atender',
+            title: 'Iniciar atendimento no local',
+            description: 'Protocolo automático da guarnição',
+            effect: 'start_service',
+            category: 'tatica',
+          });
         }
 
         setIncidents((prev) =>
@@ -116,15 +175,33 @@ export function useTacticalAI({
                 `${aiRadioCall(unit, i, 'autonomia')} — confiança ${Math.round(plan.confidence * 100)}%`,
                 'sistema'
               ),
-              makeLogEntry(plan.rationale, 'acao'),
-              makeLogEntry(
-                actions.length
-                  ? `Executando POP: ${actions.map((p) => p.title).join(' → ')}`
-                  : 'Sem ações elegíveis — reavaliar',
-                'acao'
-              ),
+              makeLogEntry(`POP: ${actions.map((p) => p.title).join(' → ')}`, 'acao'),
             ].slice(-40);
             return { ...i, log };
+          })
+        );
+
+        notify(
+          makeAiOpsEvent({
+            kind: 'chegada',
+            unitId: unit.id,
+            unitLabel: unit.label,
+            unitType: unit.type,
+            incidentTitle: incident.title,
+            message: `${unit.label} chegou no local e assume a ocorrência sem intervenção do COPOM.`,
+            detail: `Confiança da IA: ${Math.round(plan.confidence * 100)}%`,
+          })
+        );
+
+        notify(
+          makeAiOpsEvent({
+            kind: 'plano',
+            unitId: unit.id,
+            unitLabel: unit.label,
+            unitType: unit.type,
+            incidentTitle: incident.title,
+            message: `Plano tático (${actions.length} etapas)`,
+            detail: actions.map((a, i) => `${i + 1}. ${a.title}`).join(' · '),
           })
         );
 
@@ -132,18 +209,65 @@ export function useTacticalAI({
         if (!first) continue;
 
         schedule(() => {
+          notify(
+            makeAiOpsEvent({
+              kind: 'acao',
+              unitId: unit.id,
+              unitLabel: unit.label,
+              unitType: unit.type,
+              incidentTitle: incident.title,
+              message: `Em execução: ${first.title}`,
+              detail: first.description,
+            })
+          );
           h().onSceneAction(unit.id, first);
           rest.forEach((action, idx) => {
             schedule(() => {
+              notify(
+                makeAiOpsEvent({
+                  kind: 'acao',
+                  unitId: unit.id,
+                  unitLabel: unit.label,
+                  unitType: unit.type,
+                  incidentTitle: incident.title,
+                  message: `Próxima ação: ${action.title}`,
+                  detail: action.description,
+                })
+              );
               h().onSceneAction(unit.id, action);
-            }, 200 + idx * 140);
+            }, 220 + idx * 160);
           });
-        }, 320 + Math.random() * 280);
+        }, 350 + Math.random() * 250);
 
         continue;
       }
 
-      // ─── Idle no local: fechar ciclo após ações ───
+      // ─── Tarefa em andamento: avisa status ───
+      if (
+        unit.serviceEndsAt &&
+        unit.serviceEndsAt > now &&
+        unit.assignedIncidentId &&
+        unit.serviceRoleLabel
+      ) {
+        const key = `svc:${unit.id}:${unit.serviceEndsAt}`;
+        if (!handledRef.current.has(key)) {
+          handledRef.current.add(key);
+          const incident = incidents.find((i) => i.id === unit.assignedIncidentId);
+          notify(
+            makeAiOpsEvent({
+              kind: 'acao',
+              unitId: unit.id,
+              unitLabel: unit.label,
+              unitType: unit.type,
+              incidentTitle: incident?.title,
+              message: `${unit.label} no local: ${unit.serviceRoleLabel}`,
+              detail: unit.pendingIncidentTitle,
+            })
+          );
+        }
+      }
+
+      // ─── Idle no local: fecha ciclo sozinha ───
       if (
         unit.pendingDecision === 'acoes_local' &&
         unit.assignedIncidentId &&
@@ -154,7 +278,7 @@ export function useTacticalAI({
         if (!incident) continue;
         const hasWork =
           (incident.outcomes?.length ?? 0) > 0 ||
-          (incident.log ?? []).some((l) => l.kind === 'resultado');
+          (incident.log ?? []).some((l) => l.kind === 'resultado' || l.kind === 'acao');
         if (!hasWork) continue;
 
         const title = unit.pendingIncidentTitle ?? '';
@@ -177,24 +301,62 @@ export function useTacticalAI({
             (incident.outcomes ?? []).some((o) => /flagrante|condu|preso|b\.o\.|bo-|ilicito|ilícito/i.test(o)));
 
         schedule(() => {
+          notify(
+            makeAiOpsEvent({
+              kind: 'resultado',
+              unitId: unit.id,
+              unitLabel: unit.label,
+              unitType: unit.type,
+              incidentTitle: incident.title,
+              message: `${unit.label} concluiu as ações no local. Encaminhando providências finais…`,
+            })
+          );
+
           if (needHospital && (unit.type === 'bombeiro' || unit.type === 'ambulancia' || !policeLike)) {
             const hid = planHospitalId(unit, bases);
-            if (hid) h().onHospital(unit.id, hid);
-            else h().onDisposition(unit.id, 'retornar');
+            if (hid) {
+              notify(
+                makeAiOpsEvent({
+                  kind: 'hospital',
+                  unitId: unit.id,
+                  unitLabel: unit.label,
+                  unitType: unit.type,
+                  incidentTitle: incident.title,
+                  message: `${unit.label} está removendo vítima para hospital / UAI.`,
+                  important: true,
+                })
+              );
+              h().onHospital(unit.id, hid);
+            } else {
+              h().onDisposition(unit.id, 'retornar');
+            }
             return;
           }
           if (policeLike) {
-            h().onPoliceAction(unit.id, planPoliceDecision(incident, unit));
+            const pick = planPoliceDecision(incident, unit);
+            h().onPoliceAction(unit.id, pick);
             return;
           }
           if (needHospital) {
             const hid = planHospitalId(unit, bases);
-            if (hid) h().onHospital(unit.id, hid);
-            else h().onDisposition(unit.id, 'retornar');
+            if (hid) {
+              notify(
+                makeAiOpsEvent({
+                  kind: 'hospital',
+                  unitId: unit.id,
+                  unitLabel: unit.label,
+                  unitType: unit.type,
+                  incidentTitle: incident.title,
+                  message: `${unit.label} encaminha vítima a unidade de saúde.`,
+                  important: true,
+                })
+              );
+              h().onHospital(unit.id, hid);
+            } else h().onDisposition(unit.id, 'retornar');
             return;
           }
           h().onDisposition(unit.id, planDisposition(incident, unit));
-        }, 500);
+        }, 600);
         continue;
       }
 
@@ -220,6 +382,41 @@ export function useTacticalAI({
                 : i
             )
           );
+          if (pick === 'delegacia') {
+            notify(
+              makeAiOpsEvent({
+                kind: 'conduzindo_preso',
+                unitId: unit.id,
+                unitLabel: unit.label,
+                unitType: unit.type,
+                incidentTitle: incident.title,
+                message: `${unit.label} (PM) adotou flagrante/condução — deslocando à delegacia.`,
+                important: true,
+              })
+            );
+          } else if (pick === 'hospital') {
+            notify(
+              makeAiOpsEvent({
+                kind: 'hospital',
+                unitId: unit.id,
+                unitLabel: unit.label,
+                unitType: unit.type,
+                incidentTitle: incident.title,
+                message: `${unit.label} vai encaminhar envolvido/vítima a hospital.`,
+              })
+            );
+          } else {
+            notify(
+              makeAiOpsEvent({
+                kind: 'resultado',
+                unitId: unit.id,
+                unitLabel: unit.label,
+                unitType: unit.type,
+                incidentTitle: incident.title,
+                message: `${unit.label} encerrou no local (${pick === 'liberar' ? 'liberação' : 'B.O./providências'}) e retorna à base.`,
+              })
+            );
+          }
           h().onPoliceAction(unit.id, pick);
         }, 400);
         continue;
@@ -271,7 +468,8 @@ export function useTacticalAI({
               )
             );
           }
-          h().onDisposition(unit.id, incident ? planDisposition(incident, unit) : 'retornar');
+          // sempre retornar à base no modo IA (sem pedir destino ao operador)
+          h().onDisposition(unit.id, 'retornar');
         }, 320);
       }
     }
