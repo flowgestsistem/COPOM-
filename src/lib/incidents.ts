@@ -7,6 +7,7 @@ import { pickWeighted } from './random';
 import { catalogFor, catalogSize, type IncidentZone } from './incidentCatalog';
 import { incidentRequiresCivilPolice } from './civilPolice';
 import { enrichIncident } from './incidentRealism';
+import { callerNarrative, natureCodeHint, radioCallOpen } from './policeProtocol';
 
 /** Ocorrências concentradas em Uberlândia e entorno imediato. */
 export const INCIDENT_MAX_RANGE_M = 14_000;
@@ -148,9 +149,9 @@ export function generateIncident(
   const title = entry.title;
   // Prioridade sobe se arma / vítimas graves no título
   let priority = entry.priority;
-  if (/tiroteio|sequestro|homicídio|homicidio|explos|parada card|assalto a mão armada|assalto a mao armada/i.test(title)) {
+  if (/tiroteio|sequestro|homicídio|homicidio|explos|parada card|assalto a mão armada|assalto a mao armada|cárcere|carcere|fuga armada/i.test(title)) {
     priority = 1;
-  } else if (/agressão|agressao|doméstica|domestica|atropelamento|capotamento|tráfico|trafico/i.test(title) && priority > 2) {
+  } else if (/agressão|agressao|doméstica|domestica|atropelamento|capotamento|tráfico|trafico|lesão|lesao/i.test(title) && priority > 2) {
     priority = 2;
   }
 
@@ -158,7 +159,7 @@ export function generateIncident(
     id: `incident-${Date.now()}-${incidentCounter}`,
     type: entry.type,
     title,
-    description: `${entry.detail} Local: ${placeName}.`,
+    description: `${entry.detail} Local informado: ${placeName}.`,
     location,
     priority,
     status: 'aguardando',
@@ -168,7 +169,14 @@ export function generateIncident(
     requiresCivilPolice: incidentRequiresCivilPolice(title, entry.type),
   };
 
-  return enrichIncident(base);
+  const enriched = enrichIncident(base);
+  const narrative = callerNarrative(enriched);
+  const nature = natureCodeHint(enriched);
+  const open = radioCallOpen(enriched);
+  return {
+    ...enriched,
+    description: `${open} ${narrative} ${nature} ${enriched.description}`,
+  };
 }
 
 export { catalogSize };

@@ -444,6 +444,118 @@ export function buildIncidentCatalog(): CatalogEntry[] {
 
   raisePriority(catalog, /parada|AVC|hemorragia|parto|arma|afogamento|capotamento com múltiplas/i, 1);
 
+  // ═══════════════════════════════════════════
+  // OCORRÊNCIAS REALISTAS — Uberlândia / MG (2020s)
+  // Terminologia de despacho e natureza de crime
+  // ═══════════════════════════════════════════
+  const policeUdiExtra = [
+    'Roubo a residência com moradores no interior',
+    'Invasão de residência com arma branca',
+    'Furto de motocicleta em estacionamento de faculdade',
+    'Assalto a passageiro de app de transporte',
+    'Golpe do falso sequestro via ligação',
+    'Estelionato do falso boleto em comércio do centro',
+    'Pessoa em situação de rua em surto psicótico',
+    'Ameaça com arma branca em fila de lotérica',
+    'Briga generalizada em festa de bairro',
+    'Descumprimento de medida protetiva com perseguição',
+    'Violência doméstica com lesão corporal',
+    'Importunação sexual em transporte coletivo',
+    'Pornografia de vingança / ameaça digital com risco real',
+    'Disparo de arma de fogo em via pública (vários tiros)',
+    'Abordagem a veículo com placa adulterada',
+    'Recuperação de veículo roubado com ocupantes',
+    'Tráfico de drogas em ponto de boca de fumo',
+    'Usuário em overdose em praça — apoio PM + BM',
+    'Racha / corrida ilegal em avenida da cidade',
+    'Embriaguez ao volante com recusa de teste',
+    'Acidente com fuga do condutor (hit and run)',
+    'Atropelamento de pedestre com condutor no local',
+    'Bloqueio de via por caminhoneiros / protesto',
+    'Invasão de terreno com construção irregular',
+    'Furto de energia elétrica (gato) com risco de choque',
+    'Ameaça a servidor público no exercício da função',
+    'Desordem em UPA / pronto atendimento',
+    'Paciente agressivo em unidade de saúde',
+    'Menor infrator apreendido em flagrante de furto',
+    'Pessoa desaparecida com risco (idoso / criança)',
+    'Tentativa de autoextermínio em ponte/viaduto',
+    'Denúncia de cárcere privado em imóvel',
+    'Cumprimento de mandado de busca e apreensão (apoio)',
+    'Escolta de preso entre unidades',
+    'Apoio a oficial de justiça em cumprimento de ordem',
+    'Ocorrência de maus-tratos a idoso',
+    'Maus-tratos a animal com risco de confronto',
+    'Porte ilegal de arma branca em via pública',
+    'Porte ilegal de arma de fogo (denúncia)',
+    'Receptação de mercadoria roubada em comércio',
+    'Furto de carga em centro de distribuição',
+    'Invasão de propriedade com gado abatido (rural)',
+    'Conflito agrário / disputa de posse',
+    'Caça ilegal com arma de fogo',
+    'Queimada criminosa com risco a residências',
+  ];
+  catalog.push(
+    ...entries(
+      policeUdiExtra,
+      'policia',
+      2,
+      ['urbano', 'rural'],
+      'Chamado 190 — Polícia Militar de Minas Gerais. Verificar e adotar providências legais.'
+    )
+  );
+
+  const fireUdiExtra = [
+    'Princípio de incêndio em cozinha industrial',
+    'Incêndio em subestação / quadro de energia',
+    'Fumaça tóxica em galpão de reciclagem',
+    'Vazamento de GLP em condomínio',
+    'Pessoa presa em veículo após colisão lateral',
+    'Extricação de vítima em capotamento urbano',
+    'Resgate em altura — trabalhador em andaime',
+    'Queda em poço de elevador em obra',
+    'Incêndio em vegetação ameaçando condomínio',
+    'Desabamento de forro com vítima soterrada parcial',
+  ];
+  catalog.push(
+    ...entries(
+      fireUdiExtra,
+      'incendio',
+      1,
+      ['urbano'],
+      'Chamado 193 — Corpo de Bombeiros Militar. Socorro e combate a sinistro.'
+    )
+  );
+
+  const medUdiExtra = [
+    'Parada cardiorrespiratória em academia',
+    'Suspeita de AVC com janela terapêutica',
+    'Trauma craniano após queda de moto',
+    'Politraumatizado em acidente de trânsito',
+    'Hemorragia digestiva em residência',
+    'Crise convulsiva de repetição em via pública',
+    'Intoxicação exógena (medicamentos)',
+    'Queimadura de 2º grau em acidente doméstico',
+    'Parto iminente em veículo particular',
+    'Criança com corpo estranho em vias aéreas',
+  ];
+  catalog.push(
+    ...entries(
+      medUdiExtra,
+      'samu',
+      1,
+      ['urbano'],
+      'Emergência médica — suporte básico de vida pelo Corpo de Bombeiros / APH.'
+    )
+  );
+
+  raisePriority(
+    catalog,
+    /autoextermínio|autoexterminio|cárcere|carcere|tiroteio|parada card|politraumatizado|fuga armada|mandado de busca/i,
+    1
+  );
+  raisePriority(catalog, /perturbação|som alto|mau-tratos a animal|gato /i, 3);
+
   return catalog;
 }
 

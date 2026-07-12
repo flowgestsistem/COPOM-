@@ -45,8 +45,10 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
 
           <div className="start-screen__body">
             <p className="start-screen__lead">
-              Você assume o posto de operador. Monitore o mapa, atenda chamadas e despache
-              unidades em tempo real pela cidade.
+              Você assume o COPOM/COBOM de Uberlândia. Receba chamados 190/193, despache
+              guarnições em código 2 ou 3 e comande a cidade com linguagem e procedimentos
+              de central de operações. A <strong>IA tática da corporação</strong> pode atuar
+              sozinha no local, seguindo POP e rádio operacional.
             </p>
 
             <ul className="start-screen__features">
@@ -58,8 +60,8 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
                   </svg>
                 </span>
                 <div>
-                  <strong>Ocorrências em tempo real</strong>
-                  <span>Chamadas e prioridades no painel de despacho</span>
+                  <strong>Despacho 190 / 193 em tempo real</strong>
+                  <span>Protocolos, naturezas, prioridades e diário operacional</span>
                 </div>
               </li>
               <li>
@@ -75,8 +77,8 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
                   </svg>
                 </span>
                 <div>
-                  <strong>Frota e batalhões</strong>
-                  <span>Viaturas por departamento, missões e apoio</span>
+                  <strong>IA tática da corporação</strong>
+                  <span>Guarnições executam POP no local: perímetro, flagrante, APH…</span>
                 </div>
               </li>
               <li>
@@ -87,8 +89,8 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
                   </svg>
                 </span>
                 <div>
-                  <strong>Operações táticas</strong>
-                  <span>Blitz, mandado, patrulha e ponto estratégico</span>
+                  <strong>Mapa atualizado de Uberlândia</strong>
+                  <span>Ruas HD, satélite, modo escuro COPOM e rótulos de bairro</span>
                 </div>
               </li>
             </ul>
@@ -96,9 +98,9 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
 
           <footer className="start-screen__footer">
             <div className="start-screen__meta">
-              <span>Modo simulação</span>
+              <span>Simulação operacional</span>
               <span className="start-screen__meta-dot" />
-              <span>Mapa Uberlândia</span>
+              <span>PM / BM · UDI-MG</span>
             </div>
             <button type="button" className="start-screen__cta" onClick={onStart}>
               <span>Iniciar plantão</span>

@@ -28,14 +28,12 @@ function InvalidateMapSize({ layoutKey }: { layoutKey?: string | number }) {
       map.invalidateSize({ animate: false });
     };
 
-    // mount + um frame depois (layout flex/mobile às vezes atrasa o box)
     const t0 = window.requestAnimationFrame(refresh);
     const t1 = window.setTimeout(refresh, 120);
     const t2 = window.setTimeout(refresh, 400);
 
     window.addEventListener('resize', refresh);
     window.addEventListener('orientationchange', refresh);
-    // iOS: barra de endereço muda o viewport visual
     const vv = window.visualViewport;
     vv?.addEventListener('resize', refresh);
 
@@ -70,7 +68,6 @@ function FlyToOnAlert({ target }: { target: LatLng | null }) {
   return null;
 }
 
-/** Mantém o mapa centrado na unidade seguida (atualiza a cada mudança de posição). */
 function FollowUnitCamera({
   unitId,
   units,
@@ -86,7 +83,6 @@ function FollowUnitCamera({
   useEffect(() => {
     if (!unitId || lat === undefined || lng === undefined) return;
     const z = Math.max(map.getZoom(), FOLLOW_ZOOM);
-    // panTo suave e frequente — sem flyTo para não “brigar” com o movimento
     map.panTo([lat, lng], { animate: true, duration: 0.35, easeLinearity: 0.25 });
     if (map.getZoom() < FOLLOW_ZOOM) {
       map.setZoom(z, { animate: true });
@@ -119,7 +115,6 @@ export function CityMap({
   incidents: Incident[];
   blinkingIds: Set<string>;
   focusLocation: LatLng | null;
-  /** ID da unidade a seguir com a câmera (null = desligado). */
   followUnitId?: string | null;
   operations: Operation[];
   pickingLocation: boolean;
@@ -131,51 +126,95 @@ export function CityMap({
   incidentSelectMode?: boolean;
   onSelectIncident?: (incidentId: string) => void;
   onSelectUnit?: (unitId: string) => void;
-  /** Trânsito civil (vida da cidade) — ref para não re-renderizar o mapa a cada tick. */
   trafficRef?: MutableRefObject<TrafficVehicle[]>;
-  /** Muda quando o layout shell (mobile/aba) redimensiona o mapa. */
   layoutKey?: string | number;
 }) {
   return (
     <MapContainer
       center={UBERLANDIA_CENTER}
       zoom={UBERLANDIA_DEFAULT_ZOOM}
-      minZoom={8}
-      maxZoom={19}
+      minZoom={10}
+      maxZoom={20}
       zoomControl={false}
+      className="city-map-root"
       style={{
         height: '100%',
         width: '100%',
         cursor: pickingLocation || incidentSelectMode ? 'crosshair' : undefined,
+        background: '#0a0c12',
       }}
     >
       <InvalidateMapSize layoutKey={layoutKey} />
       <MapZoomControl />
       <LayersControl position="topright">
-        <LayersControl.BaseLayer checked name="Satélite">
+        {/* Mapa base moderno e atualizado (ruas + POIs) */}
+        <LayersControl.BaseLayer checked name="Mapa atual (ruas)">
           <TileLayer
-            attribution="Tiles &copy; Esri &mdash; Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            subdomains="abcd"
+            maxZoom={20}
+            maxNativeZoom={20}
+          />
+        </LayersControl.BaseLayer>
+
+        <LayersControl.BaseLayer name="Satélite HD">
+          <TileLayer
+            attribution="Tiles &copy; Esri — Maxar, Earthstar Geographics"
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            maxZoom={19}
+            maxZoom={20}
             maxNativeZoom={19}
           />
         </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="Ruas">
+
+        <LayersControl.BaseLayer name="Híbrido (satélite + nomes)">
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution="Esri World Imagery + Labels"
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={20}
+            maxNativeZoom={19}
+          />
+        </LayersControl.BaseLayer>
+
+        <LayersControl.BaseLayer name="Modo COPOM (escuro)">
+          <TileLayer
+            attribution='&copy; OSM &copy; CARTO'
+            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            subdomains="abcd"
+            maxZoom={20}
+            maxNativeZoom={20}
+          />
+        </LayersControl.BaseLayer>
+
+        <LayersControl.BaseLayer name="Ruas detalhadas (OSM)">
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             maxZoom={19}
           />
         </LayersControl.BaseLayer>
-        <LayersControl.Overlay checked name="Nomes de ruas e bairros">
+
+        <LayersControl.Overlay checked name="Rótulos / bairros">
           <TileLayer
-            attribution="Tiles &copy; Esri"
+            attribution="Esri Reference"
             url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
-            maxZoom={19}
+            maxZoom={20}
             maxNativeZoom={19}
+            opacity={0.85}
+          />
+        </LayersControl.Overlay>
+
+        <LayersControl.Overlay name="Trânsito / eixos (referência)">
+          <TileLayer
+            attribution="Esri Transportation"
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={20}
+            maxNativeZoom={19}
+            opacity={0.7}
           />
         </LayersControl.Overlay>
       </LayersControl>
+
       {trafficRef && <TrafficLayer vehiclesRef={trafficRef} />}
       <BaseMarkers bases={bases} onSelectBase={onSelectBase} />
       <RouteLines units={units} />

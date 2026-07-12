@@ -12,6 +12,7 @@ import { availableUnitsByBase, formatDistance } from '../lib/dispatch';
 import { formatServiceRemaining } from '../lib/fireTeams';
 import { callerLabel, tagLabel } from '../lib/incidentRealism';
 import type { IncidentTag } from '../types/game';
+import { natureCodeHint, popStepsForIncident } from '../lib/policeProtocol';
 
 function statusLabel(status: Incident['status']): string {
   switch (status) {
@@ -217,6 +218,15 @@ export function IncidentDashboard({
                 Informação de arma de fogo — priorizar perímetro e reforço tático.
               </p>
             )}
+            <p className="inc-dash__hint">{natureCodeHint(incident)}</p>
+            <div className="inc-dash__pop">
+              <h4>POP sugerido (procedimento)</h4>
+              <ol>
+                {popStepsForIncident(incident).map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+            </div>
             {assignedUnits.length > 1 && (
               <p className="inc-dash__hint inc-dash__hint--multi">
                 {onSceneCount > 0 && enRouteCount > 0

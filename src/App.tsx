@@ -19,6 +19,7 @@ import {
 import type { SceneAction } from './lib/sceneActions';
 import { actionDurationMs, makeLogEntry } from './lib/incidentRealism';
 import { useTacticalAI } from './hooks/useTacticalAI';
+import { radioDispatch } from './lib/policeProtocol';
 import {
   createInterviewSession,
   type InterviewSession,
@@ -231,16 +232,13 @@ function App() {
     setIncidents((prev) =>
       prev.map((i) => {
         if (i.id !== incidentId) return i;
-        const codeLabel = code === 3 ? 'código 3 (sirene)' : 'código 2';
+        const radio = radioDispatch(unit, i, code);
         if (becomesPrimary) {
           return {
             ...i,
             status: 'despachado',
             assignedUnitId: unitId,
-            log: [
-              ...(i.log ?? []),
-              makeLogEntry(`Despacho: ${unit.label} — ${codeLabel}`, 'despacho'),
-            ].slice(-40),
+            log: [...(i.log ?? []), makeLogEntry(radio, 'despacho')].slice(-40),
           };
         }
         if (i.status === 'aguardando') {
@@ -248,10 +246,7 @@ function App() {
             ...i,
             status: 'despachado',
             assignedUnitId: i.assignedUnitId ?? unitId,
-            log: [
-              ...(i.log ?? []),
-              makeLogEntry(`Despacho: ${unit.label} — ${codeLabel}`, 'despacho'),
-            ].slice(-40),
+            log: [...(i.log ?? []), makeLogEntry(radio, 'despacho')].slice(-40),
           };
         }
         // reforço: anota que outra unidade foi destacada (IA da guarnição no local)
@@ -263,7 +258,7 @@ function App() {
             description: `${i.description} ${note}`,
             log: [
               ...(i.log ?? []),
-              makeLogEntry(`Reforço: ${unit.label} a caminho (${codeLabel})`, 'apoio'),
+              makeLogEntry(`Apoio solicitado — ${radio}`, 'apoio'),
             ].slice(-40),
           };
         }

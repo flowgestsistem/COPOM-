@@ -9,20 +9,26 @@
   padding-bottom: env(safe-area-inset-bottom, 0);
   padding-left: env(safe-area-inset-left, 0);
   padding-right: env(safe-area-inset-right, 0);
+  background:
+    radial-gradient(1200px 500px at 10% -10%, rgba(59, 130, 246, 0.08), transparent 55%),
+    radial-gradient(900px 400px at 90% 0%, rgba(16, 185, 129, 0.05), transparent 50%),
+    var(--copom-bg, #07090f);
 }
 
 .app-header {
   flex: 0 0 auto;
-  padding: 8px 16px;
-  padding-top: max(8px, env(safe-area-inset-top, 0px));
-  background: #16171d;
-  color: #f3f4f6;
-  border-bottom: 1px solid #2e303a;
+  padding: 10px 16px;
+  padding-top: max(10px, env(safe-area-inset-top, 0px));
+  background: linear-gradient(180deg, rgba(18, 24, 36, 0.98), rgba(12, 16, 24, 0.96));
+  color: var(--copom-text, #e8edf7);
+  border-bottom: 1px solid var(--copom-border, #243044);
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
   min-width: 0;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
 }
 
 .app-header__brand {
@@ -36,13 +42,18 @@
 
 .app-header h1 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 0;
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #e8edf7, #93c5fd);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .app-header__title-short {
@@ -188,8 +199,8 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-right: 1px solid #2a2d38;
-  background: #0c0d12;
+  border-right: 1px solid var(--copom-border, #243044);
+  background: linear-gradient(180deg, #0c1018 0%, #090c12 100%);
 }
 
 .app-ops {
@@ -198,7 +209,8 @@
   flex-direction: column;
   min-height: 0;
   min-width: 0;
-  background: #0c0d12;
+  background: linear-gradient(180deg, #0c1018 0%, #090c12 100%);
+  border-left: 1px solid var(--copom-border, #243044);
 }
 
 .app-ops .operations-panel {
@@ -1762,6 +1774,54 @@
 
 .inc-dash__log-item--sistema {
   border-left: 3px solid #4b5563;
+}
+
+.inc-dash__pop {
+  margin: 12px 0 4px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+}
+
+.inc-dash__pop h4 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #93c5fd;
+}
+
+.inc-dash__pop ol {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #c4c8d4;
+  line-height: 1.4;
+}
+
+.inc-dash__pop li::marker {
+  color: #60a5fa;
+  font-weight: 700;
+}
+
+/* Camadas Leaflet legíveis no tema escuro */
+.leaflet-control-layers-list,
+.leaflet-control-layers-base,
+.leaflet-control-layers-overlays {
+  color: #e8edf7;
+}
+
+.leaflet-control-layers label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+  font-size: 12px;
 }
 
 .unit-marker--attention .unit-marker__photo {

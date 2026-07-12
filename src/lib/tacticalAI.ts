@@ -12,6 +12,7 @@ import {
   type SceneAction,
   type SceneActionContext,
 } from './sceneActions';
+import { popStepsForIncident } from './policeProtocol';
 
 export type TacticalPolicePick = 'delegacia' | 'liberar' | 'hospital' | 'encerrar';
 export type TacticalCivilPick = 'concluir_bo' | 'prisao' | 'provas' | 'arquivar';
@@ -255,19 +256,22 @@ export function planTacticalResponse(
   }
 
   const confidence = Math.min(
-    0.98,
-    0.55 +
+    0.99,
+    0.62 +
       (incident.tags?.length ?? 0) * 0.05 +
-      (armed ? 0.1 : 0) +
+      (armed ? 0.12 : 0) +
       (picked.length >= 3 ? 0.12 : 0.05) +
-      (incident.priority === 1 ? 0.08 : 0)
+      (incident.priority === 1 ? 0.1 : 0) +
+      (victims > 0 ? 0.05 : 0)
   );
 
-  const role = isSupport ? 'apoio' : 'guarnição principal';
+  const role = isSupport ? 'guarnição de apoio' : 'guarnição principal';
+  const pop = popStepsForIncident(incident).slice(0, 3).join(' → ');
   const rationale = [
-    `IA tática (${role}) — ${unit.label}`,
-    `Prioridade P${incident.priority}${armed ? ' · armado' : ''}${victims ? ` · ${victims} vit.` : ''}`,
-    `Plano: ${picked.map((p) => p.title).join(' → ')}`,
+    `IA tática corporativa (${role}) — ${unit.label} / ${unit.department}`,
+    `P${incident.priority}${armed ? ' · ARMA INFORMADA' : ''}${victims ? ` · ${victims} vítima(s)` : ''}`,
+    `POP: ${pop}`,
+    `Sequência: ${picked.map((p) => p.title).join(' → ')}`,
   ].join(' · ');
 
   return { actions: picked, rationale, confidence };

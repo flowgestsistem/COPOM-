@@ -7,9 +7,9 @@ export const EMOJI_BY_INCIDENT_TYPE: Record<IncidentType, string> = {
 };
 
 export const LABEL_BY_INCIDENT_TYPE: Record<IncidentType, string> = {
-  policia: 'Polícia',
-  incendio: 'Incêndio / Salvamento',
-  samu: 'Emergência médica',
+  policia: 'PM — Ostensiva',
+  incendio: 'BM — Incêndio/Salvamento',
+  samu: 'BM/APH — Emergência médica',
 };
 
 export const COLOR_BY_UNIT_TYPE: Record<UnitType, string> = {
@@ -25,13 +25,13 @@ export const LABEL_BY_UNIT_TYPE: Record<UnitType, string> = {
 };
 
 export const LABEL_BY_UNIT_STATUS: Record<Unit['status'], string> = {
-  disponivel: 'Disponível',
-  a_caminho: 'A caminho',
-  no_local: 'No local',
-  em_operacao: 'Em operação',
-  aguardando_decisao: 'Aguardando decisão do operador',
-  levando_preso: 'Levando preso à delegacia',
-  retornando: 'Retornando à base',
+  disponivel: 'Disponível (QAP)',
+  a_caminho: 'Em deslocamento',
+  no_local: 'No local (QTH)',
+  em_operacao: 'Em operação / patrulha',
+  aguardando_decisao: 'Aguardando decisão do COPOM',
+  levando_preso: 'Conduzindo à autoridade policial',
+  retornando: 'Retornando à base / sede',
 };
 
 export const LABEL_BY_ZONE: Record<string, string> = {
@@ -42,13 +42,13 @@ export const LABEL_BY_ZONE: Record<string, string> = {
 };
 
 export const LABEL_BY_INCIDENT_STATUS: Record<string, string> = {
-  aguardando: 'Aguardando',
-  despachado: 'Despachado',
-  em_atendimento: 'Em atendimento',
-  aguardando_pc: 'Aguardando Polícia Civil',
-  investigacao_pc: 'Investigação PC',
-  aguardando_decisao: 'Decisão do operador',
-  resolvido: 'Resolvido',
+  aguardando: 'Na fila — aguarda despacho',
+  despachado: 'Viatura em deslocamento',
+  em_atendimento: 'Em atendimento no local',
+  aguardando_pc: 'Preservado — aguarda Polícia Civil',
+  investigacao_pc: 'PC no local / investigação',
+  aguardando_decisao: 'Aguarda decisão do operador',
+  resolvido: 'Encerrada / resolvida',
 };
 
 export const EMOJI_BY_OPERATION_TYPE: Record<OperationType, string> = {

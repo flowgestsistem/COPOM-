@@ -12,6 +12,7 @@ import {
 import { makeLogEntry } from '../lib/incidentRealism';
 import type { SceneAction } from '../lib/sceneActions';
 import type { CivilDecisionAction, DispositionAction, PoliceDecisionAction } from '../components/UnitDecisionSheet';
+import { radioClosing, radioOnScene } from '../lib/policeProtocol';
 
 type SetIncidents = (updater: (prev: Incident[]) => Incident[]) => void;
 
@@ -110,14 +111,16 @@ export function useTacticalAI({
             if (i.id !== incident.id) return i;
             const log = [
               ...(i.log ?? []),
+              makeLogEntry(radioOnScene(unit, i), 'sistema'),
               makeLogEntry(
-                `${aiRadioCall(unit, i, 'no local')} — autonomia ativada (${Math.round(plan.confidence * 100)}%)`,
+                `${aiRadioCall(unit, i, 'autonomia')} — confiança ${Math.round(plan.confidence * 100)}%`,
                 'sistema'
               ),
+              makeLogEntry(plan.rationale, 'acao'),
               makeLogEntry(
                 actions.length
-                  ? `IA tática: ${actions.map((p) => p.title).join(' → ')}`
-                  : plan.rationale,
+                  ? `Executando POP: ${actions.map((p) => p.title).join(' → ')}`
+                  : 'Sem ações elegíveis — reavaliar',
                 'acao'
               ),
             ].slice(-40);
@@ -253,6 +256,21 @@ export function useTacticalAI({
           ? incidents.find((i) => i.id === unit.assignedIncidentId)
           : undefined;
         schedule(() => {
+          if (incident) {
+            setIncidents((prev) =>
+              prev.map((i) =>
+                i.id === incident.id
+                  ? {
+                      ...i,
+                      log: [
+                        ...(i.log ?? []),
+                        makeLogEntry(radioClosing(i, 'retorno à base / QAP'), 'resultado'),
+                      ].slice(-40),
+                    }
+                  : i
+              )
+            );
+          }
           h().onDisposition(unit.id, incident ? planDisposition(incident, unit) : 'retornar');
         }, 320);
       }
