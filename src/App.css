@@ -2593,25 +2593,280 @@
   font-size: 12px;
 }
 
-.unit-marker--attention .unit-marker__photo {
-  animation: unit-attention-blink 0.7s ease-in-out infinite;
-  box-shadow: 0 0 0 2px #fbbf24, 0 0 14px rgba(251, 191, 36, 0.7);
+/* ─── Pins de viatura ─── */
+.unit-marker-leaflet {
+  background: transparent !important;
+  border: none !important;
 }
 
-.unit-marker__siren--attention {
-  animation: unit-siren-blink 0.35s steps(1, end) infinite !important;
+.unit-marker-leaflet img {
+  max-width: none !important;
+}
+
+.unit-pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.55));
+}
+
+.unit-pin__stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.unit-pin__ring {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0c0f14;
+  border: 2.5px solid var(--unit-accent, #2563eb);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.45),
+    0 6px 14px rgba(0, 0, 0, 0.45),
+    0 0 14px rgba(37, 99, 235, 0.28);
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.unit-pin__photo {
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  overflow: hidden;
+  background: #111827;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+}
+
+.unit-pin__img,
+.unit-pin__photo img {
+  width: 44px !important;
+  height: 44px !important;
+  max-width: none !important;
+  object-fit: cover;
+  display: block;
+  border: 0;
+}
+
+.unit-pin__fallback {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #e2e8f0;
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  border-radius: 11px;
+}
+
+.unit-pin__status-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #0b0f16;
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* Giroflex duplo */
+.unit-pin__sirens {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 12px;
+}
+
+.unit-pin__led {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  opacity: 0.85;
+}
+
+.unit-pin__led--blue {
+  background: #2563eb;
+  box-shadow:
+    0 0 6px 2px rgba(37, 99, 235, 0.85),
+    0 0 12px rgba(37, 99, 235, 0.45);
+  animation: unit-led-blue 0.55s steps(1, end) infinite;
+}
+
+.unit-pin__led--red {
+  background: #ef4444;
+  box-shadow:
+    0 0 6px 2px rgba(239, 68, 68, 0.85),
+    0 0 12px rgba(239, 68, 68, 0.45);
+  animation: unit-led-red 0.55s steps(1, end) infinite;
+}
+
+.unit-pin__sirens--code3 .unit-pin__led--blue,
+.unit-pin__sirens--code3 .unit-pin__led--red {
+  animation-duration: 0.32s;
+}
+
+.unit-pin--attention .unit-pin__led--blue,
+.unit-pin--attention .unit-pin__led--red {
+  animation-duration: 0.28s;
+}
+
+@keyframes unit-led-blue {
+  0%,
+  49.9% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  50%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.92);
+  }
+}
+
+@keyframes unit-led-red {
+  0%,
+  49.9% {
+    opacity: 0.25;
+    transform: scale(0.92);
+  }
+  50%,
+  100% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+/* Placa / indicativo */
+.unit-pin__plate {
+  max-width: 72px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(8, 12, 18, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.unit-pin__callsign {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #e8edf7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Estados */
+.unit-pin--code3 .unit-pin__ring {
+  animation: unit-pin-pulse 0.9s ease-in-out infinite;
+}
+
+.unit-pin--attention .unit-pin__ring {
+  border-color: #fbbf24 !important;
+  box-shadow:
+    0 0 0 2px rgba(251, 191, 36, 0.45),
+    0 0 18px rgba(251, 191, 36, 0.55);
+  animation: unit-attention-blink 0.7s ease-in-out infinite;
+}
+
+.unit-pin--attention .unit-pin__plate {
+  border-color: rgba(251, 191, 36, 0.5);
+  color: #fde68a;
+}
+
+.unit-pin--attention .unit-pin__callsign {
+  color: #fde68a;
+}
+
+.unit-pin--onscene .unit-pin__status-dot {
+  box-shadow: 0 0 10px #22c55e;
+}
+
+.unit-pin--return .unit-pin__ring {
+  opacity: 0.88;
+}
+
+.unit-pin--police .unit-pin__plate {
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.unit-pin--fire .unit-pin__plate {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.unit-pin--med .unit-pin__plate {
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+@keyframes unit-pin-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.45),
+      0 6px 14px rgba(0, 0, 0, 0.45),
+      0 0 10px rgba(37, 99, 235, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.45),
+      0 6px 14px rgba(0, 0, 0, 0.45),
+      0 0 18px rgba(37, 99, 235, 0.55);
+  }
 }
 
 @keyframes unit-attention-blink {
   0%,
   100% {
-    opacity: 1;
     transform: scale(1);
   }
   50% {
-    opacity: 0.55;
-    transform: scale(1.06);
+    transform: scale(1.05);
   }
+}
+
+/* legado (caso ainda exista em cache) */
+.unit-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.unit-marker__photo {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid #2563eb;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.55);
+  background: #111;
+}
+
+.unit-marker__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.unit-marker__siren {
+  display: none;
 }
 
 .incident-marker {
@@ -2715,60 +2970,7 @@
   border-top-color: #12141b;
 }
 
-.unit-marker {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  pointer-events: auto;
-}
-
-.unit-marker__photo {
-  border-radius: 8px;
-  overflow: hidden;
-  border: 2px solid #2563eb;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.7);
-  background: #111;
-  flex: 0 0 auto;
-}
-
-.unit-marker__photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-/* Bolinha de giroflex abaixo da foto (azul ↔ vermelho) */
-.unit-marker__siren {
-  display: block;
-  width: 10px;
-  height: 10px;
-  margin-top: 4px;
-  border-radius: 50%;
-  flex: 0 0 auto;
-  background: #2563eb;
-  box-shadow:
-    0 0 6px 2px rgba(37, 99, 235, 0.9),
-    0 0 12px 2px rgba(37, 99, 235, 0.45);
-  animation: unit-siren-blink 0.45s steps(1, end) infinite;
-}
-
-@keyframes unit-siren-blink {
-  0%,
-  49.9% {
-    background: #2563eb;
-    box-shadow:
-      0 0 6px 2px rgba(37, 99, 235, 0.95),
-      0 0 14px 3px rgba(37, 99, 235, 0.5);
-  }
-  50%,
-  100% {
-    background: #ef4444;
-    box-shadow:
-      0 0 6px 2px rgba(239, 68, 68, 0.95),
-      0 0 14px 3px rgba(239, 68, 68, 0.5);
-  }
-}
+/* estilos antigos de unit-marker substituídos por .unit-pin acima */
 
 /* ═══════════════════════════════════════════════════
    ALERT MODAL — novo atendimento (fecha em 15s)

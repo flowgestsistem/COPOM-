@@ -114,7 +114,15 @@ function IncidentListCard({
             <div className="cm-card__units-row">
               {assignedUnits.slice(0, 3).map((u) => (
                 <span key={u.id} className="cm-card__unit-chip" title={LABEL_BY_UNIT_STATUS[u.status]}>
-                  {u.photoUrl ? <img src={u.photoUrl} alt="" /> : null}
+                  {u.photoUrl ? (
+                    <img
+                      src={u.photoUrl}
+                      alt=""
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : null}
                   <em>{u.label}</em>
                 </span>
               ))}
@@ -188,10 +196,6 @@ export function DispatchPanel({
         <div className="central-modal__hero-glow" aria-hidden />
         <div className="central-modal__hero-top">
           <div>
-            <span className="central-modal__live">
-              <i />
-              AO VIVO
-            </span>
             <span className="central-modal__kicker">Central 190 / 193</span>
             <h2 className="central-modal__title">Ocorrências</h2>
           </div>

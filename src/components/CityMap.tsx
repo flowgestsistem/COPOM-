@@ -147,14 +147,13 @@ export function CityMap({
       <InvalidateMapSize layoutKey={layoutKey} />
       <MapZoomControl />
       <LayersControl position="topright">
-        {/* Mapa base moderno e atualizado (ruas + POIs) */}
-        <LayersControl.BaseLayer checked name="Mapa atual (ruas)">
+        {/* Padrão: satélite híbrido (imagem + rótulos de bairro no overlay) */}
+        <LayersControl.BaseLayer checked name="Híbrido (satélite + nomes)">
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            subdomains="abcd"
+            attribution="Esri World Imagery + Labels"
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             maxZoom={20}
-            maxNativeZoom={20}
+            maxNativeZoom={19}
           />
         </LayersControl.BaseLayer>
 
@@ -167,12 +166,13 @@ export function CityMap({
           />
         </LayersControl.BaseLayer>
 
-        <LayersControl.BaseLayer name="Híbrido (satélite + nomes)">
+        <LayersControl.BaseLayer name="Mapa atual (ruas)">
           <TileLayer
-            attribution="Esri World Imagery + Labels"
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            subdomains="abcd"
             maxZoom={20}
-            maxNativeZoom={19}
+            maxNativeZoom={20}
           />
         </LayersControl.BaseLayer>
 

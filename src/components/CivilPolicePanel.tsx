@@ -69,10 +69,6 @@ export function CivilPolicePanel({
         <div className="central-modal__hero-glow central-modal__hero-glow--violet" aria-hidden />
         <div className="central-modal__hero-top">
           <div>
-            <span className="central-modal__live central-modal__live--violet">
-              <i />
-              PC
-            </span>
             <span className="central-modal__kicker central-modal__kicker--violet">Polícia Civil</span>
             <h2 className="central-modal__title">Investigação & B.O.</h2>
           </div>

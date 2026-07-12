@@ -63,6 +63,15 @@ video {
   max-width: 100%;
 }
 
+/* Leaflet: não limitar img dos pins (max-width:100% quebra DivIcon) */
+.leaflet-marker-icon img,
+.leaflet-div-icon img,
+.unit-marker-leaflet img,
+.base-pin-leaflet img {
+  max-width: none !important;
+  max-height: none !important;
+}
+
 /* Leaflet polish — console COPOM */
 .city-map-root .leaflet-control-layers {
   border: 1px solid var(--copom-border) !important;
