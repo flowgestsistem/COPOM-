@@ -150,16 +150,26 @@ function App() {
     }
   }, [overlay, selectedBaseId]);
 
-  const openArrivalMenu = useCallback((unitId: string) => {
-    // com IA ligada, não interrompe o operador com sheet — a corporação age sozinha
+  /** Abre menu de ações só no modo manual — com IA ligada a guarnição resolve sozinha. */
+  const openUnitDecision = useCallback((unitId: string) => {
     if (aiAutonomousRef.current) {
       setSelectedBaseId(null);
+      // fecha qualquer menu de decisão que esteja aberto
+      setOverlay((prev) => (prev?.kind === 'unit_decision' ? null : prev));
       return;
     }
     setOverlay({ kind: 'unit_decision', unitId });
     setSelectedBaseId(null);
     setMobileView('mapa');
   }, []);
+
+  const openArrivalMenu = openUnitDecision;
+
+  // IA ON: nunca deixa o painel "escolha a ação" na tela
+  useEffect(() => {
+    if (!aiAutonomous) return;
+    setOverlay((prev) => (prev?.kind === 'unit_decision' ? null : prev));
+  }, [aiAutonomous, units, overlay?.kind]);
 
   useUnitMovement(setUnits);
   useReturnToBase(units, setUnits);
@@ -720,8 +730,8 @@ function App() {
         };
       })
     );
-    // mantém o menu aberto para enfileirar mais
-    setOverlay({ kind: 'unit_decision', unitId });
+    // mantém o menu aberto para enfileirar mais (só modo manual)
+    openUnitDecision(unitId);
   }
 
   function logIncident(incidentId: string, text: string, kind: 'sistema' | 'despacho' | 'acao' | 'resultado' | 'apoio' = 'acao') {
@@ -785,7 +795,7 @@ function App() {
             : i
         )
       );
-      setOverlay({ kind: 'unit_decision', unitId });
+      openUnitDecision(unitId);
       return;
     }
 
@@ -820,7 +830,7 @@ function App() {
           category: action.category,
         },
       });
-      setOverlay({ kind: 'unit_decision', unitId });
+      openUnitDecision(unitId);
       return;
     }
 
@@ -836,7 +846,7 @@ function App() {
           fireRole: action.fireRole,
         },
       });
-      setOverlay({ kind: 'unit_decision', unitId });
+      openUnitDecision(unitId);
       return;
     }
 
@@ -912,8 +922,8 @@ function App() {
       );
     }
 
-    // menu permanece para enfileirar a próxima
-    setOverlay({ kind: 'unit_decision', unitId });
+    // menu permanece para enfileirar a próxima (só modo manual)
+    openUnitDecision(unitId);
   }
 
   function handleSceneAction(unitId: string, action: SceneAction) {
@@ -1058,7 +1068,7 @@ function App() {
             : u
         )
       );
-      setOverlay({ kind: 'unit_decision', unitId });
+      openUnitDecision(unitId);
       return;
     }
 
@@ -1284,9 +1294,7 @@ function App() {
       setUnits((prev) =>
         prev.map((u) => (u.id === unitId ? { ...u, pendingDecision: 'hospital' } : u))
       );
-      if (!aiAutonomousRef.current) {
-        setOverlay({ kind: 'unit_decision', unitId });
-      }
+      openUnitDecision(unitId);
       return;
     }
 
@@ -1704,11 +1712,11 @@ function App() {
                         : u
                     )
                   );
-                  setOverlay({ kind: 'unit_decision', unitId: overlayUnit.id });
+                  openUnitDecision(overlayUnit.id);
                 } else if (overlayUnit.status === 'disponivel') {
                   setOverlay({ kind: 'unit_menu', unitId: overlayUnit.id });
                 } else if (overlayUnit.status === 'aguardando_decisao' && overlayUnit.pendingDecision) {
-                  setOverlay({ kind: 'unit_decision', unitId: overlayUnit.id });
+                  openUnitDecision(overlayUnit.id);
                 }
               }}
             />
