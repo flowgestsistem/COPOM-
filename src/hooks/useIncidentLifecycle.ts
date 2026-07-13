@@ -235,14 +235,16 @@ export function useIncidentLifecycle(
       if (peerHasMenu) {
         arrivalBeeped.current.add(key);
         supportJoined.current.add(`join:${unit.id}:${incident.id}`);
+        // Apoio também entra em 'chegada' para a IA tática assumir (sem travar o COPOM)
         setUnits((prev) =>
           prev.map((u) =>
             u.id === unit.id
               ? {
                   ...u,
-                  status: 'no_local',
-                  pendingDecision: undefined,
-                  pendingIncidentTitle: `Apoio no local â€” aguardando organizaÃ§Ã£o Â· ${incident.title}`,
+                  status: 'aguardando_decisao',
+                  pendingDecision: 'chegada',
+                  pendingIncidentTitle: `Apoio no local · ${incident.title}`,
+                  mission: 'apoio_ocorrencia',
                   responseCode: undefined,
                   route: undefined,
                   routeProgress: undefined,
@@ -254,11 +256,12 @@ export function useIncidentLifecycle(
                   u.pendingDecision === 'chegada'
                 ? {
                     ...u,
-                    pendingIncidentTitle: `${u.pendingIncidentTitle ?? incident.title} Â· ${unit.label} chegou (apoio)`,
+                    pendingIncidentTitle: `${u.pendingIncidentTitle ?? incident.title} · ${unit.label} chegou (apoio)`,
                   }
                 : u
           )
         );
+        onArrivalMenu?.(unit.id);
         continue;
       }
 
@@ -266,14 +269,16 @@ export function useIncidentLifecycle(
         const primary = units.find((x) => x.id === incident.assignedUnitId);
         if (primary && primary.status === 'a_caminho') {
           arrivalBeeped.current.add(key);
+          // Apoio chegou antes da principal — age no local (IA) sem esperar
           setUnits((prev) =>
             prev.map((u) =>
               u.id === unit.id
                 ? {
                     ...u,
-                    status: 'no_local',
-                    pendingDecision: undefined,
-                    pendingIncidentTitle: `Apoio no local â€” principal a caminho Â· ${incident.title}`,
+                    status: 'aguardando_decisao',
+                    pendingDecision: 'chegada',
+                    pendingIncidentTitle: `Apoio no local (principal a caminho) · ${incident.title}`,
+                    mission: 'apoio_ocorrencia',
                     responseCode: undefined,
                     route: undefined,
                     routeProgress: undefined,
@@ -283,6 +288,7 @@ export function useIncidentLifecycle(
                 : u
             )
           );
+          onArrivalMenu?.(unit.id);
           continue;
         }
       }

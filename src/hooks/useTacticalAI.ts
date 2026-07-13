@@ -138,108 +138,174 @@ export function useTacticalAI({
     };
 
     for (const unit of units) {
-      // ─── Chegada: plano + execução autônoma ───
-      if (unit.pendingDecision === 'chegada' && unit.assignedIncidentId) {
+      const busy = !!(unit.serviceEndsAt && unit.serviceEndsAt > now);
+      const hasQueue = (unit.actionQueue?.length ?? 0) > 0;
+      const finalDecision =
+        unit.pendingDecision === 'hospital' ||
+        unit.pendingDecision === 'policia' ||
+        unit.pendingDecision === 'civil' ||
+        unit.pendingDecision === 'disposicao';
+
+      // Unidade no local sem tarefa: principal (chegada) OU apoio parado
+      const onSceneIdle =
+        !!unit.assignedIncidentId &&
+        !busy &&
+        !hasQueue &&
+        !finalDecision &&
+        (unit.status === 'no_local' || unit.status === 'aguardando_decisao') &&
+        (unit.pendingDecision === 'chegada' ||
+          unit.pendingDecision === 'acoes_local' ||
+          unit.pendingDecision === undefined ||
+          unit.mission === 'apoio_ocorrencia' ||
+          (unit.pendingIncidentTitle?.includes('Apoio') ?? false));
+
+      // ─── Plano + execução (principal e APOIO) ───
+      if (onSceneIdle && unit.assignedIncidentId) {
         const incident = incidents.find((i) => i.id === unit.assignedIncidentId);
         if (!incident) continue;
-        const key = `plan:${unit.id}:${incident.id}`;
-        if (handledRef.current.has(key)) continue;
-        if (unit.serviceEndsAt && unit.serviceEndsAt > now) continue;
-        if ((unit.actionQueue?.length ?? 0) > 0) continue;
+        // se já concluiu tarefas e tem outcome, deixa o bloco idle fechar o ciclo
+        const alreadyWorked =
+          !!unit.serviceRole ||
+          (incident.outcomes?.length ?? 0) > 0 ||
+          (unit.pendingIncidentTitle?.includes('Tarefa conclu') ?? false);
+        // acoes_local com trabalho já feito → não re-planeja, vai pro idle/finish
+        if (alreadyWorked && unit.pendingDecision !== 'chegada') {
+          // cai no idle abaixo
+        } else if (!alreadyWorked || unit.pendingDecision === 'chegada') {
+          const isSupport =
+            unit.mission === 'apoio_ocorrencia' ||
+            (incident.assignedUnitId !== undefined && incident.assignedUnitId !== unit.id) ||
+            (unit.pendingIncidentTitle?.includes('Apoio') ?? false);
 
-        handledRef.current.add(key);
-        const plan = planTacticalResponse(incident, unit, units, bases);
-        const actions = plan.actions.filter((a) => a.effect !== 'apurar_fatos');
-        if (actions.length === 0) {
-          const fallback = plan.actions.find((a) => a.effect !== 'apurar_fatos');
-          if (fallback) actions.push(fallback);
+          // chave por estado: re-tenta se ficou travado em chegada
+          const key = `plan:${unit.id}:${incident.id}:${isSupport ? 'apoio' : 'main'}:${unit.pendingDecision ?? 'none'}`;
+          if (!handledRef.current.has(key)) {
+            handledRef.current.add(key);
+
+            const plan = planTacticalResponse(incident, unit, units, bases);
+            let actions = plan.actions.filter((a) => a.effect !== 'apurar_fatos');
+            // apoio: plano curto (1–2 ações), sem B.O./flagrante duplicado
+            if (isSupport) {
+              actions = actions
+                .filter(
+                  (a) =>
+                    a.effect !== 'flagrante' &&
+                    a.effect !== 'bo_local' &&
+                    a.effect !== 'resolve_light' &&
+                    a.id !== 'nada_consta' &&
+                    a.id !== 'sem_risco'
+                )
+                .slice(0, unit.type === 'bombeiro' || unit.type === 'ambulancia' ? 2 : 2);
+            }
+            if (actions.length === 0) {
+              if (unit.type === 'bombeiro' || unit.type === 'ambulancia') {
+                actions.push({
+                  id: 'suporte_bm',
+                  title: isSupport ? 'Apoiar equipes no local' : 'Assumir atendimento APH/salvamento',
+                  description: 'Função automática de bombeiros no local',
+                  effect: 'fire_role',
+                  fireRole: unit.type === 'ambulancia' ? 'aph' : 'suporte',
+                  category: 'socorro',
+                });
+              } else {
+                actions.push({
+                  id: isSupport ? 'dividir_funcoes' : 'atender',
+                  title: isSupport ? 'Integrar perímetro e apoiar guarnição' : 'Iniciar atendimento no local',
+                  description: isSupport
+                    ? 'Apoio ostensivo — perímetro e contenção'
+                    : 'Protocolo automático da guarnição',
+                  effect: 'start_service',
+                  category: 'tatica',
+                });
+              }
+            }
+
+            setIncidents((prev) =>
+              prev.map((i) => {
+                if (i.id !== incident.id) return i;
+                const log = [
+                  ...(i.log ?? []),
+                  makeLogEntry(radioOnScene(unit, i), 'sistema'),
+                  makeLogEntry(
+                    `${aiRadioCall(unit, i, isSupport ? 'apoio autônomo' : 'autonomia')} — ${Math.round(plan.confidence * 100)}%`,
+                    'sistema'
+                  ),
+                  makeLogEntry(
+                    `${isSupport ? 'APOIO' : 'PRINCIPAL'} POP: ${actions.map((p) => p.title).join(' → ')}`,
+                    'acao'
+                  ),
+                ].slice(-40);
+                return { ...i, log };
+              })
+            );
+
+            // garante pendingDecision para o motor de serviço
+            // (start_service usa assignedIncidentId)
+
+            notify(
+              makeAiOpsEvent({
+                kind: 'chegada',
+                unitId: unit.id,
+                unitLabel: unit.label,
+                unitType: unit.type,
+                incidentTitle: incident.title,
+                message: isSupport
+                  ? `${unit.label} (APOIO) chegou no local e entra em ação sem o COPOM decidir.`
+                  : `${unit.label} chegou no local e assume a ocorrência sem intervenção do COPOM.`,
+                detail: `Plano: ${actions.map((a) => a.title).join(' → ')}`,
+              })
+            );
+
+            notify(
+              makeAiOpsEvent({
+                kind: 'plano',
+                unitId: unit.id,
+                unitLabel: unit.label,
+                unitType: unit.type,
+                incidentTitle: incident.title,
+                message: isSupport
+                  ? `Plano de apoio (${actions.length} etapas)`
+                  : `Plano tático (${actions.length} etapas)`,
+                detail: actions.map((a, i) => `${i + 1}. ${a.title}`).join(' · '),
+              })
+            );
+
+            const [first, ...rest] = actions;
+            if (first) {
+              schedule(() => {
+                notify(
+                  makeAiOpsEvent({
+                    kind: 'acao',
+                    unitId: unit.id,
+                    unitLabel: unit.label,
+                    unitType: unit.type,
+                    incidentTitle: incident.title,
+                    message: `Em execução: ${first.title}`,
+                    detail: first.description,
+                  })
+                );
+                h().onSceneAction(unit.id, first);
+                rest.forEach((action, idx) => {
+                  schedule(() => {
+                    notify(
+                      makeAiOpsEvent({
+                        kind: 'acao',
+                        unitId: unit.id,
+                        unitLabel: unit.label,
+                        unitType: unit.type,
+                        incidentTitle: incident.title,
+                        message: `Próxima ação: ${action.title}`,
+                        detail: action.description,
+                      })
+                    );
+                    h().onSceneAction(unit.id, action);
+                  }, 220 + idx * 160);
+                });
+              }, 280 + Math.random() * 220);
+            }
+            continue;
+          }
         }
-        // garante pelo menos atendimento padrão
-        if (actions.length === 0) {
-          actions.push({
-            id: 'atender',
-            title: 'Iniciar atendimento no local',
-            description: 'Protocolo automático da guarnição',
-            effect: 'start_service',
-            category: 'tatica',
-          });
-        }
-
-        setIncidents((prev) =>
-          prev.map((i) => {
-            if (i.id !== incident.id) return i;
-            const log = [
-              ...(i.log ?? []),
-              makeLogEntry(radioOnScene(unit, i), 'sistema'),
-              makeLogEntry(
-                `${aiRadioCall(unit, i, 'autonomia')} — confiança ${Math.round(plan.confidence * 100)}%`,
-                'sistema'
-              ),
-              makeLogEntry(`POP: ${actions.map((p) => p.title).join(' → ')}`, 'acao'),
-            ].slice(-40);
-            return { ...i, log };
-          })
-        );
-
-        notify(
-          makeAiOpsEvent({
-            kind: 'chegada',
-            unitId: unit.id,
-            unitLabel: unit.label,
-            unitType: unit.type,
-            incidentTitle: incident.title,
-            message: `${unit.label} chegou no local e assume a ocorrência sem intervenção do COPOM.`,
-            detail: `Confiança da IA: ${Math.round(plan.confidence * 100)}%`,
-          })
-        );
-
-        notify(
-          makeAiOpsEvent({
-            kind: 'plano',
-            unitId: unit.id,
-            unitLabel: unit.label,
-            unitType: unit.type,
-            incidentTitle: incident.title,
-            message: `Plano tático (${actions.length} etapas)`,
-            detail: actions.map((a, i) => `${i + 1}. ${a.title}`).join(' · '),
-          })
-        );
-
-        const [first, ...rest] = actions;
-        if (!first) continue;
-
-        schedule(() => {
-          notify(
-            makeAiOpsEvent({
-              kind: 'acao',
-              unitId: unit.id,
-              unitLabel: unit.label,
-              unitType: unit.type,
-              incidentTitle: incident.title,
-              message: `Em execução: ${first.title}`,
-              detail: first.description,
-            })
-          );
-          h().onSceneAction(unit.id, first);
-          rest.forEach((action, idx) => {
-            schedule(() => {
-              notify(
-                makeAiOpsEvent({
-                  kind: 'acao',
-                  unitId: unit.id,
-                  unitLabel: unit.label,
-                  unitType: unit.type,
-                  incidentTitle: incident.title,
-                  message: `Próxima ação: ${action.title}`,
-                  detail: action.description,
-                })
-              );
-              h().onSceneAction(unit.id, action);
-            }, 220 + idx * 160);
-          });
-        }, 350 + Math.random() * 250);
-
-        continue;
       }
 
       // ─── Tarefa em andamento: avisa status ───
@@ -267,26 +333,60 @@ export function useTacticalAI({
         }
       }
 
-      // ─── Idle no local: fecha ciclo sozinha ───
+      // ─── Idle no local: fecha ciclo sozinha (principal e APOIO) ───
       if (
-        unit.pendingDecision === 'acoes_local' &&
         unit.assignedIncidentId &&
-        !(unit.serviceEndsAt && unit.serviceEndsAt > now) &&
-        (unit.actionQueue?.length ?? 0) === 0
+        !busy &&
+        !hasQueue &&
+        (unit.pendingDecision === 'acoes_local' ||
+          unit.pendingDecision === undefined ||
+          unit.pendingDecision === 'chegada')
       ) {
         const incident = incidents.find((i) => i.id === unit.assignedIncidentId);
         if (!incident) continue;
+
+        const isSupport =
+          unit.mission === 'apoio_ocorrencia' ||
+          (incident.assignedUnitId !== undefined && incident.assignedUnitId !== unit.id);
+
         const hasWork =
+          !!unit.serviceRole ||
           (incident.outcomes?.length ?? 0) > 0 ||
-          (incident.log ?? []).some((l) => l.kind === 'resultado' || l.kind === 'acao');
-        if (!hasWork) continue;
+          (incident.log ?? []).some((l) => l.kind === 'resultado') ||
+          (unit.pendingIncidentTitle?.includes('Tarefa conclu') ?? false);
+
+        // ainda não trabalhou → o bloco de plano trata
+        if (!hasWork && unit.pendingDecision === 'chegada') continue;
+        if (!hasWork && !isSupport) continue;
 
         const title = unit.pendingIncidentTitle ?? '';
         if (title.includes('Apurando') || title.includes('Iniciando') || title.includes('Fila:')) continue;
+        // se ainda em chegada sem serviço, não encerra
+        if (unit.pendingDecision === 'chegada' && !hasWork) continue;
 
-        const key = `idle:${unit.id}:${incident.id}:${incident.outcomes?.length ?? 0}`;
+        const key = `idle:${unit.id}:${incident.id}:${incident.outcomes?.length ?? 0}:${unit.serviceRole ?? 'x'}`;
         if (handledRef.current.has(key)) continue;
         handledRef.current.add(key);
+
+        // APOIO: após sua tarefa, só volta à base (não decide flagrante da ocorrência)
+        if (isSupport) {
+          schedule(() => {
+            notify(
+              makeAiOpsEvent({
+                kind: 'resultado',
+                unitId: unit.id,
+                unitLabel: unit.label,
+                unitType: unit.type,
+                incidentTitle: incident.title,
+                message: `${unit.label} (APOIO) concluiu a função no local.`,
+                detail: 'Liberando guarnição de apoio — retorno à base.',
+              })
+            );
+            // só principal decide hospital/prisão; apoio retorna
+            h().onDisposition(unit.id, 'retornar');
+          }, 500);
+          continue;
+        }
 
         const needHospital =
           incident.type === 'samu' ||
